@@ -41,6 +41,7 @@ namespace CppUnitTestFramework {
     //--------------------------------------------------------------------------------------------------------
 
     struct RunOptions {
+        bool DiscoveryMode = false;
         bool Verbose = false;
         std::vector<std::string> Keywords;
 
@@ -56,8 +57,9 @@ namespace CppUnitTestFramework {
                 std::string option_name{ &arg[1] };
                 if (option_name == "h" || option_name == "-help" || option_name == "?") {
                     std::cout << "Usage:" << std::endl;
-                    std::cout << "    -h, --help, -?:  Displays this message" << std::endl;
-                    std::cout << "    -v, --verbose:   Show verbose output" << std::endl;
+                    std::cout << "    -h, --help, -?:        Displays this message" << std::endl;
+                    std::cout << "    -v, --verbose:         Show verbose output" << std::endl;
+                    std::cout << "        --discover_tests:  Output test details" << std::endl;
                     return false;
                 }
 
@@ -66,8 +68,13 @@ namespace CppUnitTestFramework {
                     continue;
                 }
 
+                if (option_name == "-discover_tests") {
+                    DiscoveryMode = true;
+                    continue;
+                }
+
                 // Unknown option
-                std::cout << "Unknown option: " << option_name << std::endl;
+                std::cerr << "Unknown option: " << option_name << std::endl;
                 return false;
             }
 
@@ -234,6 +241,8 @@ namespace CppUnitTestFramework {
         using TestCallback = std::function<bool (const ILoggerPtr& logger)>;
         struct TestDetails {
             std::string_view Name;
+            std::string_view SourceFile;
+            size_t SourceLine;
             std::vector<std::string_view> Tags;
             TestCallback Callback;
         };
@@ -251,6 +260,8 @@ namespace CppUnitTestFramework {
         static void Add() {
             TestDetails details;
             details.Name = TTestCase::Name;
+            details.SourceFile = TTestCase::SourceFile;
+            details.SourceLine = TTestCase::SourceLine;
             details.Tags.assign(std::begin(TTestCase::Tags), std::end(TTestCase::Tags));
             details.Callback = [](const auto&... args) -> bool {
                 TTestCase test_case(args...);
@@ -263,6 +274,13 @@ namespace CppUnitTestFramework {
 
         static void Run(const RunOptions* options, const ILoggerPtr& logger) {
             const auto& all_test_cases = GetTestVector();
+
+            if (options->DiscoveryMode) {
+                for (auto& test_case : all_test_cases) {
+                    std::cout << test_case.Name << "," << test_case.SourceFile << "," << test_case.SourceLine << std::endl;
+                }
+                return;
+            }
 
             logger->BeginRun(all_test_cases.size());
 
@@ -558,6 +576,8 @@ namespace CppUnitTestFramework {
 #define TEST_CASE(TestFixture, TestName, ...) namespace {                                           \
     struct TestCase_##TestName : TestFixture, CppUnitTestFramework::CommonFixture {                 \
         using CppUnitTestFramework::CommonFixture::CommonFixture;                                   \
+        static constexpr std::string_view SourceFile = __FILE__;                                    \
+        static constexpr size_t SourceLine = (__LINE__ - 1);                                        \
         static constexpr std::string_view Name = #TestFixture "::" #TestName;                       \
         static constexpr auto Tags = make_tags_array(__VA_ARGS__);                                  \
         void Run();                                                                                 \

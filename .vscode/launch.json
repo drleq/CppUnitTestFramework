@@ -1,0 +1,17 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "extensionHost",
+            "request": "launch",
+            "name": "CppUnitTestFramework Adapter",
+            "runtimeExecutable": "${execPath}",
+            "args": [
+                "--extensionDevelopmentPath=${workspaceFolder}/vscode-cpputf-test-adapter"
+            ],
+            "outFiles": [
+                "${workspaceFolder}/vscode-cpputf-test-adapter/out/**/*.js"
+            ]
+        }
+    ]
+}

@@ -1,0 +1,86 @@
+{
+    "name": "vscode-cpputf-test-adapter",
+    "displayName": "CppUnitTestFramework Explorer for Visual Studio Code",
+    "description": "Run your CppUTF tests in the Sidebar of Visual Studio Code",
+    "icon": "img/icon.png",
+    "author": "Andrew Condie <andrew.condie@gmail.com>",
+    "publisher": "drleq",
+    "version": "0.1.0",
+    "license": "MIT",
+    "homepage": "https://github.com/drleq/CppUnitTestFramework",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/drleq/CppUnitTestFramework.git"
+    },
+    "bugs": {
+        "url": "https://github.com/drleq/CppUnitTestFramework/issues"
+    },
+    "categories": [
+        "Other"
+    ],
+    "keywords": [
+        "test",
+        "testing",
+        "unit test"
+    ],
+    "main": "out/main.js",
+    "scripts": {
+        "postinstall": "node ./node_modules/vscode/bin/install",
+        "reinstall": "rimraf node_modules package-lock.json && npm install",
+        "clean": "rimraf out vscode-cpputf-test-adapter-*.vsix",
+        "build": "tsc",
+        "watch": "tsc -w",
+        "rebuild": "npm run clean && npm run build",
+        "package": "vsce package",
+        "publish": "vsce publish"
+    },
+    "extensionDependencies": [
+        "hbenl.vscode-test-explorer"
+    ],
+    "dependencies": {
+        "entities": "^1.1.1",
+        "tslib": "^1.9.1",
+        "vscode-test-adapter-api": "^0.4.0",
+        "xml2js": "^0.4.19"
+    },
+    "devDependencies": {
+        "@types/xml2js": "^0.4.2",
+        "@types/xml-parser": "^1.2.29",
+        "@types/entities": "^1.1.0",
+        "typescript": "^3.0.1",
+        "vscode": "^1.1.21"
+    },
+    "engines": {
+        "vscode": "^1.23.0"
+    },
+    "activationEvents": [
+        "onView:test-explorer"
+    ],
+    "contributes": {
+        "configuration": {
+            "type": "object",
+            "title": "Configuration for the Test Explorer extension",
+            "properties": {
+                "cppUnitTestFramework.executable": {
+                    "description": "The glob describing the location of your test executable",
+                    "type": "string",
+                    "scope": "resource"
+                },
+                "cppUnitTestFramework.environment": {
+                    "description": "Environment variables to be set when running the tests",
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string"
+                    },
+                    "default": {},
+                    "scope": "resource"
+                },
+                "cppUnitTestFramework.workingDirectory": {
+                    "description": "The working directory where the executable is run",
+                    "type": "string",
+                    "scope": "resource"
+                }
+            }
+        }
+    }
+}
