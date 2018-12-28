@@ -160,6 +160,6 @@ int main(int argc, const char* argv[]) {
 
     // Custom shutdown here
 
-    return success ? 1 : 0;
+    return success ? 0 : 1;
 }
 ```
