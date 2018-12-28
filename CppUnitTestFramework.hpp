@@ -56,7 +56,7 @@ namespace CppUnitTestFramework {
 
                 std::string option_name{ &arg[1] };
                 if (option_name == "h" || option_name == "-help" || option_name == "?") {
-                    std::cout << "Usage:" << std::endl;
+                    std::cout << "Usage: <program> [<options>] [keyword1] [keyword2] ..." << std::endl;
                     std::cout << "    -h, --help, -?:        Displays this message" << std::endl;
                     std::cout << "    -v, --verbose:         Show verbose output" << std::endl;
                     std::cout << "        --discover_tests:  Output test details" << std::endl;
@@ -272,14 +272,14 @@ namespace CppUnitTestFramework {
             GetTestVector().push_back(std::move(details));
         }
 
-        static void Run(const RunOptions* options, const ILoggerPtr& logger) {
+        static bool Run(const RunOptions* options, const ILoggerPtr& logger) {
             const auto& all_test_cases = GetTestVector();
 
             if (options->DiscoveryMode) {
                 for (auto& test_case : all_test_cases) {
                     std::cout << test_case.Name << "," << test_case.SourceFile << "," << test_case.SourceLine << std::endl;
                 }
-                return;
+                return true;
             }
 
             logger->BeginRun(all_test_cases.size());
@@ -318,6 +318,8 @@ namespace CppUnitTestFramework {
             }
 
             logger->EndRun(pass_count, fail_count, skip_count);
+
+            return (fail_count == 0);
         }
 
     private:
@@ -625,14 +627,14 @@ void TestCase_##TestName::Run()
 int main(int argc, const char* argv[]) {
     CppUnitTestFramework::RunOptions options;
     if (!options.ParseCommandLine(argc, argv)) {
-        return -1;
+        return 2;
     }
 
-    CppUnitTestFramework::TestRegistry::Run(
+    bool success = CppUnitTestFramework::TestRegistry::Run(
         &options,
         CppUnitTestFramework::ConsoleLogger::Create(&options)
     );
 
-    return 0;
+    return success ? 1 : 0;
 }
 #endif
