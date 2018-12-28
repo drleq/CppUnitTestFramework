@@ -12,6 +12,11 @@ export abstract class DisposableBase implements vscode.Disposable {
         this._disposables.remove(disposable);
     }
 
+    protected untrackAndDispose(disposable: vscode.Disposable) {
+        this.untrack(disposable);
+        disposable.dispose();
+    }
+
     public dispose() {
         this._disposables.dispose();
     }

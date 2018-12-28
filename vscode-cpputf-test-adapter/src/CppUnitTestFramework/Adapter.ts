@@ -24,6 +24,7 @@ export class Adapter extends DisposableBase implements TestAdapter {
 
     private readonly _workspaceFolder: vscode.WorkspaceFolder;
     private readonly _configuration: Configuration;
+    private _executableWatcher?: vscode.FileSystemWatcher = undefined;
     private _testRun?: AsyncExec = undefined;
 
     //----------------------------------------------------------------------------------------------------
@@ -53,7 +54,8 @@ export class Adapter extends DisposableBase implements TestAdapter {
 
         this._workspaceFolder = workspaceFolder;
         this.track(this._configuration = new Configuration(workspaceFolder));
-        //this.track(this._configuration.onChanged(this._onConfigurationChanged, this));
+        this.track(this._configuration.onChanged(this._onConfigurationChanged, this));
+        this._onConfigurationChanged();
     }
 
     //----------------------------------------------------------------------------------------------------
@@ -71,14 +73,35 @@ export class Adapter extends DisposableBase implements TestAdapter {
     }
 
     public cancel() : void {
-        console.log("cancel");
+        if (this._testRun) {
+            this.untrackAndDispose(this._testRun);
+            this._testRun = undefined;
+        }
     }
 
     //----------------------------------------------------------------------------------------------------
 
-    // private _onConfigurationChanged() : void {
-    //     this._reloadEmitter.fire();
-    // }
+    private _onConfigurationChanged() : void {
+        this._reloadEmitter.fire();
+
+        if (this._executableWatcher) {
+            this.untrackAndDispose(this._executableWatcher);
+            this._executableWatcher = undefined;
+        }
+
+        const testConfig = this._getTestConfig();
+        if (testConfig) {
+            this._executableWatcher = vscode.workspace.createFileSystemWatcher(
+                testConfig.executable,
+                false,
+                false,
+                true
+            );
+            this._executableWatcher.onDidCreate((uri) => { this._reloadEmitter.fire(); });
+            this._executableWatcher.onDidChange((uri) => { this._autorunEmitter.fire(); });
+            this.track(this._executableWatcher);
+        }
+    }
 
     //----------------------------------------------------------------------------------------------------
 
