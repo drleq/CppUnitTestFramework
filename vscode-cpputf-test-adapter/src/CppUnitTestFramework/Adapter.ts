@@ -1,4 +1,3 @@
-import * as childProcess from 'child_process';
 import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
@@ -6,7 +5,7 @@ import * as vscode from 'vscode';
 import { TestAdapter, TestSuiteEvent, TestEvent, TestSuiteInfo, TestInfo } from "vscode-test-adapter-api";
 import { DisposableBase } from './DisposableBase';
 import { Configuration } from './Configuration';
-import { promisify } from 'util';
+import { AsyncExec } from './AsyncExec';
 
 //------------------------------------------------------------------------------------------------------------
 
@@ -21,10 +20,11 @@ interface TestConfiguration {
 export class Adapter extends DisposableBase implements TestAdapter {
     private readonly _testStatesEmitter = new vscode.EventEmitter<TestSuiteEvent | TestEvent>();
     private readonly _reloadEmitter = new vscode.EventEmitter<void>();
-    private readonly _autorunEmitter = new vscode.EventEmitter<void>();    
+    private readonly _autorunEmitter = new vscode.EventEmitter<void>();
 
     private readonly _workspaceFolder: vscode.WorkspaceFolder;
     private readonly _configuration: Configuration;
+    private _testRun?: AsyncExec = undefined;
 
     //----------------------------------------------------------------------------------------------------
 
@@ -117,43 +117,24 @@ export class Adapter extends DisposableBase implements TestAdapter {
     //----------------------------------------------------------------------------------------------------
 
     private async _discoverTests() : Promise<TestSuiteInfo | undefined> {
+        if (this._testRun) {
+            // Something is already running.
+            return undefined;
+        }
+
         const testConfig = this._getTestConfig();
         if (!testConfig) {
             return undefined;
         }
 
-        let discoveryOutput: string;
-
-        try {
-            const execFileAsync = promisify(childProcess.execFile);
-            const execConfig: childProcess.ExecFileOptions = {
-                cwd: testConfig.workingDirectory,
-                env: { ...process.env, ...testConfig.environment }
-            };
-
-            const output = await execFileAsync(
-                testConfig.executable,
-                [ '--discover_tests' ],
-                execConfig
-            );
-            discoveryOutput = output.stdout;
-        } catch(error) {
-            console.log(error);
-            return undefined;
-        }
-
-        const lines = discoveryOutput.split(/[\r\n]+/);
         const testSuite: TestSuiteInfo = {
             type: 'suite',
             id: 'AllFixtures',
             label: 'AllFixtures',
             children: []
         };
-        for (const line of lines) {
-            if (line.length == 0) {
-                continue;
-            }
 
+        const handleLine = (line: string) => {
             const [fixtureTest, sourceFile, sourceLine] = line.split(',');
             const [fixture, test] = fixtureTest.split('::');
             
@@ -177,80 +158,129 @@ export class Adapter extends DisposableBase implements TestAdapter {
                 file: sourceFile,
                 line: Number(sourceLine)
             });
-        }
+        };
 
-        return testSuite;
+        return new Promise<TestSuiteInfo | undefined>((resolve, reject) => {
+            this.track(this._testRun = new AsyncExec());
+            
+            this._testRun.onExit((code) => {
+                if (code == 0) {
+                    resolve(testSuite);
+                } else {
+                    reject(code);
+                }
+                this.untrack(<AsyncExec>this._testRun);
+                this._testRun = undefined;
+            })
+            this._testRun.onError((error) => {
+                reject(error);
+                this.untrack(<AsyncExec>this._testRun);
+                this._testRun = undefined;
+            });
+            this._testRun.onStdoutLine(handleLine);
+
+            this._testRun.start(
+                testConfig.executable,
+                [ '--discover_tests' ],
+                testConfig.workingDirectory,
+                testConfig.environment
+            );
+        });
     }
 
     //----------------------------------------------------------------------------------------------------
 
     private async _runTests(testInfo: TestSuiteInfo | TestInfo) : Promise<void> {
+        if (this._testRun) {
+            // Something is already running.
+            return;
+        }
+
         const testConfig = this._getTestConfig();
         if (!testConfig) {
             return;
         }
 
-        let discoveryOutput: string;
+        let testsComplete: boolean = false;
+        let currentTestName: string = '';
+        let currentMessageLines: string[] = [];
 
-        try {
-            const execFileAsync = promisify(childProcess.execFile);
-            const execConfig: childProcess.ExecFileOptions = {
-                cwd: testConfig.workingDirectory,
-                env: { ...process.env, ...testConfig.environment }
-            };
-
-            const execArgs: string[] = [ "--verbose" ];
-            if (testInfo.id != 'AllFixtures') {
-                execArgs.push(testInfo.id);
+        const handleLine = (line: string) => {
+            if (testsComplete) {
+                // We have stopped processing tests for some reason.
+                return;
             }
 
-            const output = await execFileAsync(
-                testConfig.executable,
-                execArgs,
-                execConfig
-            );
-            discoveryOutput = output.stdout;
-        } catch(error) {
-            console.log(error);
-            return undefined;
-        }
+            if (line.startsWith('    ')) {
+                // A message line for the current test.
+                currentMessageLines.push(line.trimLeft());
+                return;
+            }
 
-        const lines = discoveryOutput.split(/[\r\n]+/);
-        lines.shift();
+            if (currentTestName.length > 0) {
+                // The current test has finished.  Update the status.
+                const status = (currentMessageLines.length == 0) ? "passed" : "failed";
+                const message = currentMessageLines.join(os.EOL);
+                this._updateTestStatus(currentTestName, status, message);
 
-        while (lines.length > 0) {
-            const line = <string>lines.shift();
+                currentTestName = '';
+                currentMessageLines = [];
+            }
 
             if (line.startsWith('Skip:')) {
                 const testName = line.substr(6);
                 this._updateTestStatus(testName, "skipped", "");
-                continue;
+                return;
             }
 
             if (line.startsWith('Test:')) {
-                const testName = line.substr(6);
-
-                const messageLines: string[] = [];
-                while (lines[0].startsWith('    ')) {
-                    const messageLine = <string>lines.shift();
-                    messageLines.push(messageLine.trimLeft());
-                }
-                const message = messageLines.join(os.EOL);
-
-                const status = (messageLines.length == 0) ? "passed" : "failed";
-
-                this._updateTestStatus(testName, status, message);
-                continue;
+                currentTestName = line.substr(6);
+                this._updateTestStatus(currentTestName, "running", '');
+                return;
             }
 
+            if (line.startsWith('Running')) {
+                // Ignore the first line.
+                return;
+            }
+            
             if (line.startsWith('Complete.')) {
                 // All done.
+                testsComplete = true;
                 return;
             }
 
             // Something has gone wrong.  Stop processing.
+            testsComplete = true;
             return;
-        } 
+        };
+
+        return new Promise<void>((resolve, reject) => {
+            this.track(this._testRun = new AsyncExec());
+            
+            this._testRun.onExit((code) => {
+                if (code == 0) {
+                    resolve();
+                } else {
+                    reject(code);
+                }
+                this.untrack(<AsyncExec>this._testRun);
+                this._testRun = undefined;
+            })
+            this._testRun.onError((error) => {
+                reject(error);
+                this.untrack(<AsyncExec>this._testRun);
+                this._testRun = undefined;
+            });
+            this._testRun.onStdoutLine(handleLine);
+
+            this._testRun.start(
+                testConfig.executable,
+                [ '--verbose' ],
+                testConfig.workingDirectory,
+                testConfig.environment
+            );
+        });
     }
 
     //----------------------------------------------------------------------------------------------------
