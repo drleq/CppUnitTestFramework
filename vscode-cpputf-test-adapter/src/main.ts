@@ -44,7 +44,7 @@ function _onWorkspaceFolderChanged(event: vscode.WorkspaceFoldersChangeEvent) {
 //------------------------------------------------------------------------------------------------------------
 
 export async function activate(context: vscode.ExtensionContext) {
-	const testExplorerExtension = _getTestExplorerUIExtension();;
+	const testExplorerExtension = _getTestExplorerUIExtension();
 	if (!testExplorerExtension) {
         // The Test Explorer UI extension isn't available.  Nothing we can do.
         return;

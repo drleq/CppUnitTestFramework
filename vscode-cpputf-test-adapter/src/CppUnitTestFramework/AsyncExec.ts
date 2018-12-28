@@ -1,14 +1,24 @@
 import * as childProcess from 'child_process';
 import * as vscode from 'vscode';
 import { DisposableBase } from './DisposableBase';
+import { Logger } from './Logger';
 
 export class AsyncExec extends DisposableBase {
     private readonly _exitEmitter = new vscode.EventEmitter<number>();
     private readonly _errorEmitter = new vscode.EventEmitter<Error>();
     private readonly _stdoutLineEmitter = new vscode.EventEmitter<string>();
+    private readonly _logger: Logger;
     private _process?: childProcess.ChildProcess = undefined;
 
     private _incompleteLine?: string = undefined;
+
+    //--------------------------------------------------------------------------------------------------------
+
+    constructor(logger: Logger) {
+        super();
+
+        this._logger = logger;
+    }
 
     //--------------------------------------------------------------------------------------------------------
 
@@ -38,6 +48,11 @@ export class AsyncExec extends DisposableBase {
             cwd: workingDirectory,
             env: { ...process.env, ...environment }
         };
+
+        this._logger.write('Executing process:');
+        this._logger.write('    ' + executable);
+        this._logger.write('    [' + args.join(', ') + ']');
+        this._logger.write('    ' + workingDirectory);
 
         this._process = childProcess.spawn(executable, args, spawnConfig);
         this._process.on('exit', (code, signal) => { this._onExit(code, signal); });
