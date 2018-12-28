@@ -635,6 +635,6 @@ int main(int argc, const char* argv[]) {
         CppUnitTestFramework::ConsoleLogger::Create(&options)
     );
 
-    return success ? 1 : 0;
+    return success ? 0 : 1;
 }
 #endif
