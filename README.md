@@ -32,6 +32,7 @@ Usage: <program> [<options>] [keyword1] [keyword2] ...
     -h, --help, -?:        Displays this message
     -v, --verbose:         Show verbose output
         --discover_tests:  Output test details
+        --adapter_info:    Output additional details for test adapters
 ```
 If no `options` or `keywords` are provided then all test cases are run but only test failures are recorded.  The `--verbose` option will force all test cases to be recorded, even if they pass or are skipped.  Any `keywords` provided will be used to filter the set of test cases.
 
