@@ -41,9 +41,10 @@ namespace CppUnitTestFramework {
     //--------------------------------------------------------------------------------------------------------
 
     struct RunOptions {
-        bool DiscoveryMode = false;
         bool Verbose = false;
-        std::vector<std::string> Keywords;
+		bool DiscoveryMode = false;
+		bool AdapterInfo = false;
+		std::vector<std::string> Keywords;
 
         bool ParseCommandLine(int argc, const char* argv[]) {
             for (int index = 1; index < argc; ++index) {
@@ -60,6 +61,7 @@ namespace CppUnitTestFramework {
                     std::cout << "    -h, --help, -?:        Displays this message" << std::endl;
                     std::cout << "    -v, --verbose:         Show verbose output" << std::endl;
                     std::cout << "        --discover_tests:  Output test details" << std::endl;
+					std::cout << "        --adapter_info:    Output additional details for test adapters" << std::endl;
                     return false;
                 }
 
@@ -72,6 +74,11 @@ namespace CppUnitTestFramework {
                     DiscoveryMode = true;
                     continue;
                 }
+
+				if (option_name == "-adapter_info") {
+					AdapterInfo = true;
+					continue;
+				}
 
                 // Unknown option
                 std::cerr << "Unknown option: " << option_name << std::endl;
@@ -94,7 +101,7 @@ namespace CppUnitTestFramework {
 
         virtual void SkipTest(const std::string_view& name) = 0;
         virtual void EnterTest(const std::string_view& name) = 0;
-        virtual void ExitTest() = 0;
+        virtual void ExitTest(bool failed) = 0;
 
         virtual void SkipSection(const std::string_view& name) = 0;
         virtual void PushSection(const std::string_view& name) = 0;
@@ -139,7 +146,6 @@ namespace CppUnitTestFramework {
             }
         }
         void EnterTest(const std::string_view& name) override {
-            m_test_failed = false;
             m_test_log = std::stringstream();
             m_test_log << "Test: " << name.data() << std::endl;
             m_indent_level++;
@@ -148,10 +154,19 @@ namespace CppUnitTestFramework {
                 FlushLog();
             }
         }
-        void ExitTest() override {
+        void ExitTest(bool failed) override {
             m_indent_level = 0;
 
-            if (m_test_failed || m_run_options->Verbose) {
+			if (m_run_options->AdapterInfo) {
+				m_test_log << "Test Complete: ";
+				if (failed) {
+					m_test_log << "failed" << std::endl;
+				} else {
+					m_test_log << "passed" << std::endl;
+				}
+			}
+
+            if (failed || m_run_options->Verbose) {
                 FlushLog();
             }
         }
@@ -182,7 +197,6 @@ namespace CppUnitTestFramework {
             const AssertLocation& location,
             const std::string_view& message
         ) override {
-            m_test_failed = true;
             auto& log = Indent();
 
             log << "@" << location.LineNumber << " ";
@@ -199,7 +213,6 @@ namespace CppUnitTestFramework {
             }
         }
         void UnhandledException(const std::string_view& message) override {
-            m_test_failed = true;
             Indent() << "Fail: " << message.data() << std::endl;
 
             if (m_run_options->Verbose) {
@@ -226,8 +239,6 @@ namespace CppUnitTestFramework {
 
     private:
         const RunOptions*const m_run_options;
-
-        bool m_test_failed = false;
         size_t m_indent_level = 0;
         std::stringstream m_test_log;
     };
@@ -277,7 +288,15 @@ namespace CppUnitTestFramework {
 
             if (options->DiscoveryMode) {
                 for (auto& test_case : all_test_cases) {
-                    std::cout << test_case.Name << "," << test_case.SourceFile << "," << test_case.SourceLine << std::endl;
+					// Output the test name.
+					std::cout << test_case.Name;
+
+					if (options->AdapterInfo) {
+						// Output the source file and line number.
+						std::cout << "," << test_case.SourceFile << "," << test_case.SourceLine;
+					}
+
+					std::cout << std::endl;
                 }
                 return true;
             }
@@ -300,7 +319,7 @@ namespace CppUnitTestFramework {
                 bool test_failed = true;
                 try {
                     test_failed = test_case.Callback(logger);
-                } catch (const AssertException& e) {
+                } catch (const AssertException&) {
                     // REQUIRE* statement failed.  No need to do anything else.
                 } catch (const std::exception& e) {
                     logger->UnhandledException(e.what());
@@ -308,7 +327,7 @@ namespace CppUnitTestFramework {
                     logger->UnhandledException("<unstructured>");
                 }
 
-                logger->ExitTest();
+                logger->ExitTest(test_failed);
 
                 if (test_failed) {
                     fail_count++;
@@ -579,7 +598,7 @@ namespace CppUnitTestFramework {
     struct TestCase_##TestName : TestFixture, CppUnitTestFramework::CommonFixture {                 \
         using CppUnitTestFramework::CommonFixture::CommonFixture;                                   \
         static constexpr std::string_view SourceFile = __FILE__;                                    \
-        static constexpr size_t SourceLine = (__LINE__ - 1);                                        \
+        static constexpr size_t SourceLine = __LINE__;                                              \
         static constexpr std::string_view Name = #TestFixture "::" #TestName;                       \
         static constexpr auto Tags = make_tags_array(__VA_ARGS__);                                  \
         void Run();                                                                                 \
