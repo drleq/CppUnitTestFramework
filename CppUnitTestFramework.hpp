@@ -42,9 +42,9 @@ namespace CppUnitTestFramework {
 
     struct RunOptions {
         bool Verbose = false;
-		bool DiscoveryMode = false;
-		bool AdapterInfo = false;
-		std::vector<std::string> Keywords;
+        bool DiscoveryMode = false;
+        bool AdapterInfo = false;
+        std::vector<std::string> Keywords;
 
         bool ParseCommandLine(int argc, const char* argv[]) {
             for (int index = 1; index < argc; ++index) {
@@ -61,7 +61,7 @@ namespace CppUnitTestFramework {
                     std::cout << "    -h, --help, -?:        Displays this message" << std::endl;
                     std::cout << "    -v, --verbose:         Show verbose output" << std::endl;
                     std::cout << "        --discover_tests:  Output test details" << std::endl;
-					std::cout << "        --adapter_info:    Output additional details for test adapters" << std::endl;
+                    std::cout << "        --adapter_info:    Output additional details for test adapters" << std::endl;
                     return false;
                 }
 
@@ -75,10 +75,10 @@ namespace CppUnitTestFramework {
                     continue;
                 }
 
-				if (option_name == "-adapter_info") {
-					AdapterInfo = true;
-					continue;
-				}
+                if (option_name == "-adapter_info") {
+                    AdapterInfo = true;
+                    continue;
+                }
 
                 // Unknown option
                 std::cerr << "Unknown option: " << option_name << std::endl;
@@ -157,14 +157,14 @@ namespace CppUnitTestFramework {
         void ExitTest(bool failed) override {
             m_indent_level = 0;
 
-			if (m_run_options->AdapterInfo) {
-				m_test_log << "Test Complete: ";
-				if (failed) {
-					m_test_log << "failed" << std::endl;
-				} else {
-					m_test_log << "passed" << std::endl;
-				}
-			}
+            if (m_run_options->AdapterInfo) {
+                m_test_log << "Test Complete: ";
+                if (failed) {
+                    m_test_log << "failed" << std::endl;
+                } else {
+                    m_test_log << "passed" << std::endl;
+                }
+            }
 
             if (failed || m_run_options->Verbose) {
                 FlushLog();
@@ -288,15 +288,15 @@ namespace CppUnitTestFramework {
 
             if (options->DiscoveryMode) {
                 for (auto& test_case : all_test_cases) {
-					// Output the test name.
-					std::cout << test_case.Name;
+                    // Output the test name.
+                    std::cout << test_case.Name;
 
-					if (options->AdapterInfo) {
-						// Output the source file and line number.
-						std::cout << "," << test_case.SourceFile << "," << test_case.SourceLine;
-					}
+                    if (options->AdapterInfo) {
+                        // Output the source file and line number.
+                        std::cout << "," << test_case.SourceFile << "," << test_case.SourceLine;
+                    }
 
-					std::cout << std::endl;
+                    std::cout << std::endl;
                 }
                 return true;
             }

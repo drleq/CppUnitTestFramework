@@ -187,7 +187,7 @@ export class Adapter extends DisposableBase implements TestAdapter {
                 id: fixtureTest,
                 label: test,
                 file: sourceFile,
-                line: Number(sourceLine)
+                line: Number(sourceLine) - 1
             });
         };
 
