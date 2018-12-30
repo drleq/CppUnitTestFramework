@@ -187,7 +187,7 @@ export class Adapter extends DisposableBase implements TestAdapter {
                 id: fixtureTest,
                 label: test,
                 file: sourceFile,
-                line: Number(sourceLine)
+                line: Number(sourceLine) - 1
             });
         };
 
@@ -216,7 +216,7 @@ export class Adapter extends DisposableBase implements TestAdapter {
             this._logger.write('Discovering tests...');
             this._testRun.start(
                 testConfig.executable,
-                [ '--discover_tests' ],
+                [ '--discover_tests', '--adapter_info' ],
                 testConfig.workingDirectory,
                 testConfig.environment
             );
@@ -254,14 +254,28 @@ export class Adapter extends DisposableBase implements TestAdapter {
                 return;
             }
 
-            if (currentTestName.length > 0) {
+            if (line.startsWith('Test Complete:')) {
+                if (currentTestName.length == 0) {
+                    // Unexpected test completion
+                    testsComplete = true;
+                    return;
+                }
+
                 // The current test has finished.  Update the status.
-                const status = (currentMessageLines.length == 0) ? "passed" : "failed";
+                const passed = line.substr(15) == "passed";
+                const status = passed ? "passed" : "failed";
                 const message = currentMessageLines.join(os.EOL);
                 this._updateTestStatus(currentTestName, status, message);
 
                 currentTestName = '';
                 currentMessageLines = [];
+                return;
+            }
+
+            if (currentTestName.length != 0) {
+                // The current test has finished unexpectedly.
+                testsComplete = true;
+                return;
             }
 
             if (line.startsWith('Skip:')) {
@@ -317,7 +331,7 @@ export class Adapter extends DisposableBase implements TestAdapter {
             this._logger.write('Running tests...');
             this._testRun.start(
                 testConfig.executable,
-                [ '--verbose' ],
+                [ '--verbose', '--adapter_info' ],
                 testConfig.workingDirectory,
                 testConfig.environment
             );
