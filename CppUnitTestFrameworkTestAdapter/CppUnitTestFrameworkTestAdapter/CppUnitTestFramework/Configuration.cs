@@ -22,17 +22,24 @@ namespace CppUnitTestFrameworkTestAdapter.CppUnitTestFramework
             Enabled = true;
             WorkingDirectory00 = null;
             Environment = new Dictionary<string, string>();
-            DebugLogging = false;
+            DebugLogging = true;
         }
 
         //----------------------------------------------------------------------------------------------------
 
-        public Configuration(string settings_xml) {
+        public Configuration(string settings_xml)
+            : this()
+        {
             var doc = new XmlDocument();
             doc.LoadXml(settings_xml);
 
+            var root = doc.SelectSingleNode("RunSettings/CppUnitTestFramework");
+            if (root == null) {
+                return;
+            }
+
             // CppUnitTestFrameworkTestAdaptor.Enabled
-            var enabled00 = doc.SelectSingleNode("Enabled");
+            var enabled00 = root.SelectSingleNode("Enabled");
             if (enabled00 != null && bool.TryParse(enabled00.InnerText, out bool value)) {
                 Enabled = value;
             } else {
@@ -40,19 +47,19 @@ namespace CppUnitTestFrameworkTestAdapter.CppUnitTestFramework
             }
 
             // CppUnitTestFrameworkTestAdaptor.WorkingDirectory
-            var working_directory00 = doc.SelectSingleNode("WorkingDirectory");
+            var working_directory00 = root.SelectSingleNode("WorkingDirectory");
             WorkingDirectory00 = working_directory00?.InnerText;
 
             // CppUnitTestFrameworkTestAdaptor.DebugLogging
-            var debug_logging00 = doc.SelectSingleNode("DebugLogging");
+            var debug_logging00 = root.SelectSingleNode("DebugLogging");
             if (debug_logging00 != null && bool.TryParse(debug_logging00.InnerText, out bool value2)) {
                 DebugLogging = value2;
             } else {
-                DebugLogging = false;
+                DebugLogging = true;
             }
 
             // CppUnitTestFrameworkTestAdaptor.Environment
-            var environment00 = doc.SelectSingleNode("Environment");
+            var environment00 = root.SelectSingleNode("Environment");
             Environment = new Dictionary<string, string>();
             if (environment00 != null) {
                 foreach (XmlNode entry in environment00.ChildNodes) {

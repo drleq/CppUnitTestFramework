@@ -1,10 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <PackageManifest Version="2.0.0" xmlns="http://schemas.microsoft.com/developer/vsx-schema/2011" xmlns:d="http://schemas.microsoft.com/developer/vsx-schema-design/2011">
     <Metadata>
-        <Identity Id="CppUnitTestFrameworkTestAdapter.3d93a426-c7bd-4f14-94c6-2c31cab6ac53" Version="1.0" Language="en-US" Publisher="Andrew Condie" />
+        <Identity Id="CppUnitTestFrameworkTestAdapter.3d93a426-c7bd-4f14-94c6-2c31cab6ac53" Version="1.0" Language="en-US" Publisher="drleq" />
         <DisplayName>Test Adapter for CppUnitTestFramework</DisplayName>
         <Description>Test Adapter for use with CppUnitTestFramework.</Description>
+        <MoreInfo>https://github.com/drleq/CppUnitTestFramework</MoreInfo>
         <License>LICENSE.txt</License>
+        <ReleaseNotes>ReleaseNotes.md</ReleaseNotes>
         <Tags>C++, Unit Test, CppUnitTestFramework, CppUTF, Test Adapter</Tags>
     </Metadata>
     <Installation>

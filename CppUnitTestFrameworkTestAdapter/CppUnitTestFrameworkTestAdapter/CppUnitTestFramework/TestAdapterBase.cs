@@ -12,6 +12,7 @@ namespace CppUnitTestFrameworkTestAdapter.CppUnitTestFramework
     public class TestAdapterBase
     {
         private IMessageLogger m_logger = null;
+        private string m_solution_directory00 = null;
 
         protected Configuration Config { get; private set; }
 
@@ -19,13 +20,18 @@ namespace CppUnitTestFrameworkTestAdapter.CppUnitTestFramework
 
         protected bool Initialize(IMessageLogger logger, IDiscoveryContext context) {
             m_logger = logger;
-            Config = new Configuration(context.RunSettings.SettingsXml);
 
+            Config = new Configuration(context.RunSettings.SettingsXml);
             LogDebug($"Config.Enabled            = {Config.Enabled}");
             LogDebug($"Config.WorkingDirectory00 = {Config.WorkingDirectory00}");
             LogDebug($"Config.Environment:");
             foreach (var kvp in Config.Environment) {
                 LogDebug($"    {kvp.Key} = {kvp.Value}");
+            }
+
+            if (context is IRunContext run_context00) {
+                m_solution_directory00 = run_context00.SolutionDirectory;
+                LogDebug($"Solution directory = {m_solution_directory00}");
             }
 
             if (!Config.Enabled) {
@@ -79,9 +85,7 @@ namespace CppUnitTestFrameworkTestAdapter.CppUnitTestFramework
             process.StartInfo.UseShellExecute = false;
             process.StartInfo.FileName = executable;
             process.StartInfo.Arguments = string.Join(" ", args);
-            if (Config.WorkingDirectory00 != null) {
-                process.StartInfo.WorkingDirectory = Config.WorkingDirectory00;
-            }
+            process.StartInfo.WorkingDirectory = GetWorkingDirectory(executable);
             foreach (var kvp in Config.Environment) {
                 process.StartInfo.Environment.Add(kvp);
             }
@@ -92,6 +96,28 @@ namespace CppUnitTestFrameworkTestAdapter.CppUnitTestFramework
                 return null;
             }
             return process;
+        }
+
+        //----------------------------------------------------------------------------------------------------
+
+        private string GetWorkingDirectory(string executable) {
+            if (Config.WorkingDirectory00 == null) {
+                // No working directory in the config.  Return either the test run directory or the
+                // folder of the executable.
+                return m_solution_directory00 ?? Path.GetDirectoryName(executable);
+            }
+
+            if (Path.IsPathRooted(Config.WorkingDirectory00)) {
+                // The config has provided an absolute path.  Just use that.
+                return Config.WorkingDirectory00;
+            }
+
+            // The config has provided a relative path.  Combine it with either the test run directory,
+            // the solution directory or (as a last resort) the executable directory.
+            if (m_solution_directory00 != null) {
+                return Path.Combine(m_solution_directory00, Config.WorkingDirectory00);
+            }
+            return Path.Combine(Path.GetDirectoryName(executable), Config.WorkingDirectory00);
         }
 
         //----------------------------------------------------------------------------------------------------
