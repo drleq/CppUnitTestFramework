@@ -1,7 +1,8 @@
 # CppUnitTestFramework
 A single header C++17 unit test framework with a focus on simplicity and quick setup.  It should compile with any C++17 compliant compiler without any additional source or binary dependencies.  Platform specific operations are avoided.
 
-A Visual Studio Code [Test Adapter](https://marketplace.visualstudio.com/items?itemName=drleq.vscode-cpputf-test-adapter) is provided to streamline test development.
+Visual Studio Code Test Adapter: [vscode-cpputf-test-adapter](https://marketplace.visualstudio.com/items?itemName=drleq.vscode-cpputf-test-adapter)  
+Visual Studio 2017 Test Adapter: [CppUnitTestFrameworkTestAdapter](https://marketplace.visualstudio.com/items?itemName=drleq.CppUnitTestFrameworkTestAdapter)
 
 
 # Quick start
