@@ -494,7 +494,7 @@ namespace CppUnitTestFramework {
             ss << "Expected exception [" << typeid(TException).name() << "] but none was thrown";
             return AssertException(ss.str().c_str());
         }
-    };
+    }
 
     //--------------------------------------------------------------------------------------------------------
     //--------------------------------------------------------------------------------------------------------
@@ -594,7 +594,7 @@ namespace CppUnitTestFramework {
 
 //------------------------------------------------------------------------------------------------------------
 
-#define TEST_CASE(TestFixture, TestName, ...) namespace {                                           \
+#define TEST_CASE_WITH_TAGS(TestFixture, TestName, ...) namespace {                                 \
     struct TestCase_##TestName : TestFixture, CppUnitTestFramework::CommonFixture {                 \
         using CppUnitTestFramework::CommonFixture::CommonFixture;                                   \
         static constexpr std::string_view SourceFile = __FILE__;                                    \
@@ -606,6 +606,8 @@ namespace CppUnitTestFramework {
     CppUnitTestFramework::TestRegistry::AutoReg<TestCase_##TestName> _CPPUTF_NEXT_REGISTRAR_NAME;   \
 }                                                                                                   \
 void TestCase_##TestName::Run()
+
+#define TEST_CASE(TestFixture, TestName) TEST_CASE_WITH_TAGS(TestFixture, TestName, )
 
 //------------------------------------------------------------------------------------------------------------
 

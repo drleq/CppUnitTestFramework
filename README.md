@@ -62,8 +62,8 @@ TEST_CASE(MyFixture, Test2) {
 Test cases can be optionally tagged, allowing them to be grouped into categories that span multiple test files.  For example, given the following tests:
 ```cpp
 TEST_CASE(MyFixture, TestWithoutTags) { ... }
-TEST_CASE(MyFixture, TestWithTags, "gpu") { ... }
-TEST_CASE(OtherFixture, TestWithTags, "gpu") { ... }
+TEST_CASE_WITH_TAGS(MyFixture, TestWithTags, "gpu") { ... }
+TEST_CASE_WITH_TAGS(OtherFixture, TestWithTags, "gpu") { ... }
 ```
 You can then execute the tests individually using `keywords`:
 ```bash
