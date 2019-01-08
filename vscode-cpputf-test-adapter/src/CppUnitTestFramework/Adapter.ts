@@ -175,8 +175,10 @@ export class Adapter extends DisposableBase implements TestAdapter {
         };
 
         const resolveSourceFile = (sourceFile: string): string => {
+            // If the source file can be found (either absolute or relative) then just us it.
             if (fs.existsSync(sourceFile)) { return sourceFile; }
 
+            // Attempt to resolve the source file with the provided build directory.
             if (testConfig.buildDirectory) {
                 let fullPath = path.resolve(testConfig.buildDirectory, sourceFile);
                 if (fs.existsSync(fullPath)) {
@@ -388,21 +390,25 @@ export class Adapter extends DisposableBase implements TestAdapter {
         // Build a DebugConfiguration that runs the requested tests through the C++ debugger.
         const debugLaunchConfig: vscode.DebugConfiguration = {
             name: 'Debugging ' + entry.id,
-            type: 'cppdbg',
+            type: 'cppvsdbg',
+            linux: {
+                type: 'cppdbg',
+                MIMode: 'gdb',
+                setupCommands: [
+                    {
+                        description: "Enable pretty-printing for gdb",
+                        text: "-enable-pretty-printing",
+                        ignoreFailures: true
+                    }
+                ]
+            },
+            osx: { type: 'cppdbg', MIMode: 'lldb' },
             request: 'launch',
             program: testConfig.executable,
             args: execArgs,
             cwd: testConfig.workingDirectory,
             env: testConfig.environment,
-            externalConsole: false,
-            MIMode: 'gdb',
-            setupCommands: [
-                {
-                    description: "Enable pretty-printing for gdb",
-                    text: "-enable-pretty-printing",
-                    ignoreFailures: true
-                }
-            ]
+            externalConsole: false
         };
 
         this._logger.write('Debugging tests...');
