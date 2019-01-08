@@ -9,6 +9,7 @@ export class Configuration extends DisposableBase {
     private static readonly EnvironmentField: string = 'environment';
     private static readonly WorkingDirectoryField: string = 'workingDirectory';
     private static readonly DebugLoggingField: string = 'debugLogging';
+    private static readonly BuildDirectoryField: string = 'buildDirectory';
 
     public readonly _onChangedEmitter = new vscode.EventEmitter<void>();
 
@@ -69,6 +70,13 @@ export class Configuration extends DisposableBase {
     get isDebugLoggingEnabled() : boolean {
         const debugLogging = this._config.get<boolean>(Configuration.DebugLoggingField);
         return debugLogging ? true : false;
+    }
+
+    //--------------------------------------------------------------------------------------------------------
+
+    get buildDirectory() : string | undefined {
+        const buildDirectory = this._config.get<string>(Configuration.BuildDirectoryField);
+        return buildDirectory ? buildDirectory : undefined;
     }
 
     //--------------------------------------------------------------------------------------------------------

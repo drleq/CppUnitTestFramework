@@ -14,6 +14,7 @@ interface TestConfiguration {
     executable: string;
     environment: NodeJS.ProcessEnv;
     workingDirectory: string;
+    buildDirectory: string | undefined;
 };
 
 //------------------------------------------------------------------------------------------------------------
@@ -136,10 +137,18 @@ export class Adapter extends DisposableBase implements TestAdapter {
             workingDirectory = path.resolve(this._workspaceFolder.uri.fsPath, workingDirectory);
         }
 
+        let buildDirectory = this._configuration.buildDirectory;
+        if (buildDirectory) {
+            if (!path.isAbsolute(buildDirectory)) {
+                buildDirectory = path.resolve(this._workspaceFolder.uri.fsPath, buildDirectory);
+            }
+        }
+
         return {
             executable: executable,
             environment: environment,
-            workingDirectory: workingDirectory
+            workingDirectory: workingDirectory,
+            buildDirectory: buildDirectory
         };
     }
 
@@ -165,6 +174,19 @@ export class Adapter extends DisposableBase implements TestAdapter {
             children: []
         };
 
+        const resolveSourceFile = (sourceFile: string): string => {
+            if (fs.existsSync(sourceFile)) { return sourceFile; }
+
+            if (testConfig.buildDirectory) {
+                let fullPath = path.resolve(testConfig.buildDirectory, sourceFile);
+                if (fs.existsSync(fullPath)) {
+                    return fullPath;
+                }
+            }
+            
+            return sourceFile;
+        };
+
         const handleLine = (line: string) => {
             const [fixtureTest, sourceFile, sourceLine] = line.split(',');
             const [fixture, test] = fixtureTest.split('::');
@@ -186,7 +208,7 @@ export class Adapter extends DisposableBase implements TestAdapter {
                 type: 'test',
                 id: fixtureTest,
                 label: test,
-                file: sourceFile,
+                file: resolveSourceFile(sourceFile),
                 line: Number(sourceLine) - 1
             });
         };
@@ -328,10 +350,15 @@ export class Adapter extends DisposableBase implements TestAdapter {
             });
             this._testRun.onStdoutLine(handleLine);
 
+            const execArgs: string[] = [ "--verbose", "--adapter_info" ];
+            if (testInfo.id != 'AllFixtures') {
+                execArgs.push(testInfo.id);
+            }
+
             this._logger.write('Running tests...');
             this._testRun.start(
                 testConfig.executable,
-                [ '--verbose', '--adapter_info' ],
+                execArgs,
                 testConfig.workingDirectory,
                 testConfig.environment
             );

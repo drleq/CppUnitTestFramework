@@ -86,6 +86,11 @@
                     "description": "Enables debug logging for the extension",
                     "type": "boolean",
                     "scope": "resource"
+                },
+                "cppUnitTestFramework.buildDirectory": {
+                    "description": "The build directory used to compile source files.  Used for resolving source code references.",
+                    "type": "string",
+                    "scope": "resource"
                 }
             }
         }
