@@ -36,12 +36,20 @@ export class Configuration extends DisposableBase {
         }
 
         if (fs.existsSync(executable)) {
+            // Path is absolute.
             return executable;
         }
 
         executable = path.resolve(this.workspaceFolder.uri.fsPath, executable);
         if (fs.existsSync(executable)) {
+            // Path is relative to the ${workspaceFolder}.
             return executable;
+        }
+
+        let win32_executable = executable + '.exe';
+        if (fs.existsSync(win32_executable)) {
+            // Executable is for Windows.
+            return win32_executable;
         }
 
         return undefined;

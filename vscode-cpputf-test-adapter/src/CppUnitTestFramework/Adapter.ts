@@ -369,7 +369,7 @@ export class Adapter extends DisposableBase implements TestAdapter {
 
     //----------------------------------------------------------------------------------------------------
 
-    private _debugTests(entry: TestSuiteInfo | TestInfo) : void {
+    private async _debugTests(entry: TestSuiteInfo | TestInfo) : Promise<void> {
         if (this._testRun) {
             // Something is already running.
             this._logger.write('Cannot debug tests while a test run is active');
@@ -411,9 +411,26 @@ export class Adapter extends DisposableBase implements TestAdapter {
             externalConsole: false
         };
 
-        this._logger.write('Debugging tests...');
-        vscode.debug.startDebugging(this._workspaceFolder, debugLaunchConfig);
-        return;
+        return new Promise<void>(async (resolve, reject) => {
+            this._logger.write('Debugging tests...');
+
+            const success = await vscode.debug.startDebugging(this._workspaceFolder, debugLaunchConfig);
+            const activeSession = vscode.debug.activeDebugSession;
+            if (!success || !activeSession) {
+                this._logger.write('Failed to start debugging session');
+                reject("Failed to start debugging session");
+                return;
+            }
+
+            const subscription = vscode.debug.onDidTerminateDebugSession((session) => {
+                if (activeSession != session) {
+                    return;
+                }
+                resolve();
+                this.untrackAndDispose(subscription);
+            });
+            this.track(subscription);
+        });
     }
 
     //----------------------------------------------------------------------------------------------------
