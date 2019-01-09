@@ -5,7 +5,7 @@
     "icon": "img/icon.png",
     "author": "Andrew Condie <andrew.condie@gmail.com>",
     "publisher": "drleq",
-    "version": "1.0.0",
+    "version": "1.1.0",
     "license": "MIT",
     "homepage": "https://github.com/drleq/CppUnitTestFramework",
     "repository": {
@@ -85,6 +85,11 @@
                 "cppUnitTestFramework.debugLogging": {
                     "description": "Enables debug logging for the extension",
                     "type": "boolean",
+                    "scope": "resource"
+                },
+                "cppUnitTestFramework.buildDirectory": {
+                    "description": "The build directory used to compile source files.  Used for resolving source code references.",
+                    "type": "string",
                     "scope": "resource"
                 }
             }

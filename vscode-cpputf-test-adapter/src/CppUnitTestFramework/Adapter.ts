@@ -14,6 +14,7 @@ interface TestConfiguration {
     executable: string;
     environment: NodeJS.ProcessEnv;
     workingDirectory: string;
+    buildDirectory: string | undefined;
 };
 
 //------------------------------------------------------------------------------------------------------------
@@ -136,10 +137,18 @@ export class Adapter extends DisposableBase implements TestAdapter {
             workingDirectory = path.resolve(this._workspaceFolder.uri.fsPath, workingDirectory);
         }
 
+        let buildDirectory = this._configuration.buildDirectory;
+        if (buildDirectory) {
+            if (!path.isAbsolute(buildDirectory)) {
+                buildDirectory = path.resolve(this._workspaceFolder.uri.fsPath, buildDirectory);
+            }
+        }
+
         return {
             executable: executable,
             environment: environment,
-            workingDirectory: workingDirectory
+            workingDirectory: workingDirectory,
+            buildDirectory: buildDirectory
         };
     }
 
@@ -165,6 +174,21 @@ export class Adapter extends DisposableBase implements TestAdapter {
             children: []
         };
 
+        const resolveSourceFile = (sourceFile: string): string => {
+            // If the source file can be found (either absolute or relative) then just us it.
+            if (fs.existsSync(sourceFile)) { return sourceFile; }
+
+            // Attempt to resolve the source file with the provided build directory.
+            if (testConfig.buildDirectory) {
+                let fullPath = path.resolve(testConfig.buildDirectory, sourceFile);
+                if (fs.existsSync(fullPath)) {
+                    return fullPath;
+                }
+            }
+            
+            return sourceFile;
+        };
+
         const handleLine = (line: string) => {
             const [fixtureTest, sourceFile, sourceLine] = line.split(',');
             const [fixture, test] = fixtureTest.split('::');
@@ -186,7 +210,7 @@ export class Adapter extends DisposableBase implements TestAdapter {
                 type: 'test',
                 id: fixtureTest,
                 label: test,
-                file: sourceFile,
+                file: resolveSourceFile(sourceFile),
                 line: Number(sourceLine) - 1
             });
         };
@@ -328,10 +352,15 @@ export class Adapter extends DisposableBase implements TestAdapter {
             });
             this._testRun.onStdoutLine(handleLine);
 
+            const execArgs: string[] = [ "--verbose", "--adapter_info" ];
+            if (testInfo.id != 'AllFixtures') {
+                execArgs.push(testInfo.id);
+            }
+
             this._logger.write('Running tests...');
             this._testRun.start(
                 testConfig.executable,
-                [ '--verbose', '--adapter_info' ],
+                execArgs,
                 testConfig.workingDirectory,
                 testConfig.environment
             );
@@ -340,7 +369,7 @@ export class Adapter extends DisposableBase implements TestAdapter {
 
     //----------------------------------------------------------------------------------------------------
 
-    private _debugTests(entry: TestSuiteInfo | TestInfo) : void {
+    private async _debugTests(entry: TestSuiteInfo | TestInfo) : Promise<void> {
         if (this._testRun) {
             // Something is already running.
             this._logger.write('Cannot debug tests while a test run is active');
@@ -361,26 +390,47 @@ export class Adapter extends DisposableBase implements TestAdapter {
         // Build a DebugConfiguration that runs the requested tests through the C++ debugger.
         const debugLaunchConfig: vscode.DebugConfiguration = {
             name: 'Debugging ' + entry.id,
-            type: 'cppdbg',
+            type: 'cppvsdbg',
+            linux: {
+                type: 'cppdbg',
+                MIMode: 'gdb',
+                setupCommands: [
+                    {
+                        description: "Enable pretty-printing for gdb",
+                        text: "-enable-pretty-printing",
+                        ignoreFailures: true
+                    }
+                ]
+            },
+            osx: { type: 'cppdbg', MIMode: 'lldb' },
             request: 'launch',
             program: testConfig.executable,
             args: execArgs,
             cwd: testConfig.workingDirectory,
             env: testConfig.environment,
-            externalConsole: false,
-            MIMode: 'gdb',
-            setupCommands: [
-                {
-                    description: "Enable pretty-printing for gdb",
-                    text: "-enable-pretty-printing",
-                    ignoreFailures: true
-                }
-            ]
+            externalConsole: false
         };
 
-        this._logger.write('Debugging tests...');
-        vscode.debug.startDebugging(this._workspaceFolder, debugLaunchConfig);
-        return;
+        return new Promise<void>(async (resolve, reject) => {
+            this._logger.write('Debugging tests...');
+
+            const success = await vscode.debug.startDebugging(this._workspaceFolder, debugLaunchConfig);
+            const activeSession = vscode.debug.activeDebugSession;
+            if (!success || !activeSession) {
+                this._logger.write('Failed to start debugging session');
+                reject("Failed to start debugging session");
+                return;
+            }
+
+            const subscription = vscode.debug.onDidTerminateDebugSession((session) => {
+                if (activeSession != session) {
+                    return;
+                }
+                resolve();
+                this.untrackAndDispose(subscription);
+            });
+            this.track(subscription);
+        });
     }
 
     //----------------------------------------------------------------------------------------------------
