@@ -10,6 +10,15 @@ Property                                | Description
 `cppUnitTestFramework.workingDirectory` | _Optional_: The working directory to use when running the unit test executable.  Can be absolute or relative to the workspace.  Defaults to the executable directory.
 `cppUnitTestFramework.environment`      | _Optional_: A map of additional environment variables to apply when running the unit test executable.
 `cppUnitTestFramework.debugLogging`     | _Optional_: Enabled debug logging for the extension.  Defaults to `false`.
+`cppUnitTestFramework.buildDirectory`   | _Optional_: The build directory to use when resolving source file references, such as `./build` when using CMake.
 
 # Debugging
-Currently, the only debugger supported is `gdb`.  If this is not available in your workspace then the feature will not work.
+Debugging is handled through the `ms-vscode.cpptools` extension.  The debugger launch type is configured automatically based on your platform.
+
+Platform | Requirements
+---------|-------------
+Windows  | Visual Studio 2017
+Linux    | `gdb`
+OSX      | `lldb`
+
+Due to limitations with the debugger API it is not possible to update the test results when debugging.
