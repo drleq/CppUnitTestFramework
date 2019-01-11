@@ -105,7 +105,6 @@ namespace CppUnitTestFramework {
         virtual void EnterTest(const std::string_view& name) = 0;
         virtual void ExitTest(bool failed) = 0;
 
-        virtual void SkipSection(const std::string_view& name) = 0;
         virtual void PushSection(const std::string_view& name) = 0;
         virtual void PopSection() = 0;
 
@@ -173,13 +172,6 @@ namespace CppUnitTestFramework {
             }
         }
 
-        void SkipSection(const std::string_view& name) override {
-            Indent() << "[Skipped] " << name.data() << std::endl;
-
-            if (m_run_options->Verbose) {
-                FlushLog();
-            }
-        }
         void PushSection(const std::string_view& name) override {
             Indent() << name.data() << std::endl;
             m_indent_level++;
