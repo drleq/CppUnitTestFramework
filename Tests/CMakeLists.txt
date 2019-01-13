@@ -39,6 +39,7 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 # Add source files to executable
 add_executable(Tests
     main.cpp
+    AssertTest.cpp
     SectionTest.cpp
     TestCaseTest.cpp
     ToStringTest.cpp

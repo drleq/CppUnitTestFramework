@@ -455,6 +455,19 @@ namespace CppUnitTestFramework {
 
         //----------------------------------------------------------------------------------------------------
 
+        template <typename T>
+        std::optional<AssertException> IsNotNull(const T& value, const char* expression) {
+            if (value != nullptr) {
+                return std::nullopt;
+            }
+
+            std::ostringstream ss;
+            ss << "IsNotNull(" << expression << ")";
+            return AssertException(ss.str());
+        }
+
+        //----------------------------------------------------------------------------------------------------
+
         inline std::optional<AssertException> IsTrue(bool value, const char* expression) {
             if (!value) {
                 std::ostringstream ss;
@@ -501,11 +514,27 @@ namespace CppUnitTestFramework {
 
         //----------------------------------------------------------------------------------------------------
 
+        template <typename Callback>
+        inline std::optional<AssertException> NoThrow(const Callback& callback) {
+            try {
+                callback();
+            } catch (std::exception& e) {
+                std::ostringstream ss;
+                ss << "Expected no exception but caught [" << typeid(e).name() << ": " << e.what() << "]";
+                return AssertException(ss.str());
+            } catch (...) {
+                return AssertException("Expected no exception but one occurred");
+            }
+
+            return std::nullopt;
+        }
+
+        //----------------------------------------------------------------------------------------------------
+
         inline std::optional<AssertException> Close(float left, float right, float percentage_tolerance) {
             float diff = right - left;
-            if (diff < 0.0f) { diff = -diff; }
-            float percentage_left = diff / left;
-            float percentage_right = diff / right;
+            float percentage_left = std::abs(diff / left);
+            float percentage_right = std::abs(diff / right);
 
             if (percentage_left <= percentage_tolerance && percentage_right <= percentage_tolerance) {
                 return std::nullopt;
@@ -521,9 +550,8 @@ namespace CppUnitTestFramework {
 
         inline std::optional<AssertException> Close(double left, double right, double percentage_tolerance) {
             double diff = right - left;
-            if (diff < 0.0f) { diff = -diff; }
-            double percentage_left = diff / left;
-            double percentage_right = diff / right;
+            double percentage_left = std::abs(diff / left);
+            double percentage_right = std::abs(diff / right);
 
             if (percentage_left <= percentage_tolerance && percentage_right <= percentage_tolerance) {
                 return std::nullopt;
@@ -663,23 +691,29 @@ void TestCase_##TestName::Run()
 
 #define _CPPUTF_ASSERT_LOCATION CppUnitTestFramework::AssertLocation{ __FILE__, __LINE__ }
 
-#define REQUIRE(Expression)        CppUnitTestFramework::CommonFixture::HandleAssert(CppUnitTestFramework::AssertType::Throw, _CPPUTF_ASSERT_LOCATION, CppUnitTestFramework::Assert::IsTrue((Expression), #Expression))
-#define REQUIRE_TRUE(Expression)   CppUnitTestFramework::CommonFixture::HandleAssert(CppUnitTestFramework::AssertType::Throw, _CPPUTF_ASSERT_LOCATION, CppUnitTestFramework::Assert::IsTrue((Expression), #Expression))
-#define REQUIRE_FALSE(Expression)  CppUnitTestFramework::CommonFixture::HandleAssert(CppUnitTestFramework::AssertType::Throw, _CPPUTF_ASSERT_LOCATION, CppUnitTestFramework::Assert::IsFalse((Expression), #Expression))
-#define REQUIRE_EQUAL(Left, Right) CppUnitTestFramework::CommonFixture::HandleAssert(CppUnitTestFramework::AssertType::Throw, _CPPUTF_ASSERT_LOCATION, CppUnitTestFramework::Assert::AreEqual((Left), (Right)))
-#define REQUIRE_NULL(Expression)   CppUnitTestFramework::CommonFixture::HandleAssert(CppUnitTestFramework::AssertType::Throw, _CPPUTF_ASSERT_LOCATION, CppUnitTestFramework::Assert::IsNull((Expression), #Expression))
+#define REQUIRE(Expression)          CppUnitTestFramework::CommonFixture::HandleAssert(CppUnitTestFramework::AssertType::Throw, _CPPUTF_ASSERT_LOCATION, CppUnitTestFramework::Assert::IsTrue(static_cast<bool>(Expression), #Expression))
+#define REQUIRE_TRUE(Expression)     CppUnitTestFramework::CommonFixture::HandleAssert(CppUnitTestFramework::AssertType::Throw, _CPPUTF_ASSERT_LOCATION, CppUnitTestFramework::Assert::IsTrue(static_cast<bool>(Expression), #Expression))
+#define REQUIRE_FALSE(Expression)    CppUnitTestFramework::CommonFixture::HandleAssert(CppUnitTestFramework::AssertType::Throw, _CPPUTF_ASSERT_LOCATION, CppUnitTestFramework::Assert::IsFalse(static_cast<bool>(Expression), #Expression))
+#define REQUIRE_EQUAL(Left, Right)   CppUnitTestFramework::CommonFixture::HandleAssert(CppUnitTestFramework::AssertType::Throw, _CPPUTF_ASSERT_LOCATION, CppUnitTestFramework::Assert::AreEqual((Left), (Right)))
+#define REQUIRE_NULL(Expression)     CppUnitTestFramework::CommonFixture::HandleAssert(CppUnitTestFramework::AssertType::Throw, _CPPUTF_ASSERT_LOCATION, CppUnitTestFramework::Assert::IsNull((Expression), #Expression))
+#define REQUIRE_NOT_NULL(Expression) CppUnitTestFramework::CommonFixture::HandleAssert(CppUnitTestFramework::AssertType::Throw, _CPPUTF_ASSERT_LOCATION, CppUnitTestFramework::Assert::IsNotNull((Expression), #Expression))
 #define REQUIRE_THROW(ExceptionType, Expression) \
     CppUnitTestFramework::CommonFixture::HandleAssert(CppUnitTestFramework::AssertType::Throw, _CPPUTF_ASSERT_LOCATION, CppUnitTestFramework::Assert::Throws<ExceptionType>([&] { Expression; }))
+#define REQUIRE_NO_THROW(Expression) \
+    CppUnitTestFramework::CommonFixture::HandleAssert(CppUnitTestFramework::AssertType::Throw, _CPPUTF_ASSERT_LOCATION, CppUnitTestFramework::Assert::NoThrow([&] { Expression; }))
 #define REQUIRE_CLOSE(Left, Right, Percentage) \
     CppUnitTestFramework::CommonFixture::HandleAssert(CppUnitTestFramework::AssertType::Throw, _CPPUTF_ASSERT_LOCATION, CppUnitTestFramework::Assert::Close((Left), (Right), (Percentage)))
 
-#define CHECK(Expression)        CppUnitTestFramework::CommonFixture::HandleAssert(CppUnitTestFramework::AssertType::Continue, _CPPUTF_ASSERT_LOCATION, CppUnitTestFramework::Assert::IsTrue((Expression), #Expression))
-#define CHECK_TRUE(Expression)   CppUnitTestFramework::CommonFixture::HandleAssert(CppUnitTestFramework::AssertType::Continue, _CPPUTF_ASSERT_LOCATION, CppUnitTestFramework::Assert::IsTrue((Expression), #Expression))
-#define CHECK_FALSE(Expression)  CppUnitTestFramework::CommonFixture::HandleAssert(CppUnitTestFramework::AssertType::Continue, _CPPUTF_ASSERT_LOCATION, CppUnitTestFramework::Assert::IsFalse((Expression), #Expression))
-#define CHECK_EQUAL(Left, Right) CppUnitTestFramework::CommonFixture::HandleAssert(CppUnitTestFramework::AssertType::Continue, _CPPUTF_ASSERT_LOCATION, CppUnitTestFramework::Assert::AreEqual((Left), (Right)))
-#define CHECK_NULL(Expression)   CppUnitTestFramework::CommonFixture::HandleAssert(CppUnitTestFramework::AssertType::Continue, _CPPUTF_ASSERT_LOCATION, CppUnitTestFramework::Assert::IsNull((Expression), #Expression))
+#define CHECK(Expression)          CppUnitTestFramework::CommonFixture::HandleAssert(CppUnitTestFramework::AssertType::Continue, _CPPUTF_ASSERT_LOCATION, CppUnitTestFramework::Assert::IsTrue(static_cast<bool>(Expression), #Expression))
+#define CHECK_TRUE(Expression)     CppUnitTestFramework::CommonFixture::HandleAssert(CppUnitTestFramework::AssertType::Continue, _CPPUTF_ASSERT_LOCATION, CppUnitTestFramework::Assert::IsTrue(static_cast<bool>(Expression), #Expression))
+#define CHECK_FALSE(Expression)    CppUnitTestFramework::CommonFixture::HandleAssert(CppUnitTestFramework::AssertType::Continue, _CPPUTF_ASSERT_LOCATION, CppUnitTestFramework::Assert::IsFalse(static_cast<bool>(Expression), #Expression))
+#define CHECK_EQUAL(Left, Right)   CppUnitTestFramework::CommonFixture::HandleAssert(CppUnitTestFramework::AssertType::Continue, _CPPUTF_ASSERT_LOCATION, CppUnitTestFramework::Assert::AreEqual((Left), (Right)))
+#define CHECK_NULL(Expression)     CppUnitTestFramework::CommonFixture::HandleAssert(CppUnitTestFramework::AssertType::Continue, _CPPUTF_ASSERT_LOCATION, CppUnitTestFramework::Assert::IsNull((Expression), #Expression))
+#define CHECK_NOT_NULL(Expression) CppUnitTestFramework::CommonFixture::HandleAssert(CppUnitTestFramework::AssertType::Continue, _CPPUTF_ASSERT_LOCATION, CppUnitTestFramework::Assert::IsNotNull((Expression), #Expression))
 #define CHECK_THROW(ExceptionType, Expression) \
     CppUnitTestFramework::CommonFixture::HandleAssert(CppUnitTestFramework::AssertType::Continue, _CPPUTF_ASSERT_LOCATION, CppUnitTestFramework::Assert::Throws<ExceptionType>([&] { Expression; }))
+#define CHECK_NO_THROW(Expression) \
+    CppUnitTestFramework::CommonFixture::HandleAssert(CppUnitTestFramework::AssertType::Continue, _CPPUTF_ASSERT_LOCATION, CppUnitTestFramework::Assert::NoThrow([&] { Expression; }))
 #define CHECK_CLOSE(Left, Right, Percentage) \
     CppUnitTestFramework::CommonFixture::HandleAssert(CppUnitTestFramework::AssertType::Continue, _CPPUTF_ASSERT_LOCATION, CppUnitTestFramework::Assert::Close((Left), (Right), (Percentage)))
 

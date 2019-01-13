@@ -86,19 +86,28 @@ REQUIRE_TRUE(Expression)       // Asserts that [Expression] evaluates to [true]
 REQUIRE_FALSE(Expression)      // Asserts that [Expression] evaluates to [false]
 REQUIRE_EQUAL(Left, Right)     // Asserts that [Left == Right]
 REQUIRE_NULL(Expression)       // Asserts that [Expression] evaluates to [nullptr]
+REQUIRE_NOT_NULL(Expression)   // Asserts that [Expression] does not evaluate to [nullptr]
 REQUIRE_THROW(ExceptionType, Expession)  // Asserts that invoking [Expression] causes an exception of type [ExceptionType] to be thrown
+REQUIRE_NO_THROW(Expression)   // Asserts that invoking [Expression] does not cause any type of exception to be thrown
+REQUIRE_CLOSE(Left, Right, Percentage)   // Asserts that [abs(Right - Left)] is less than the absolute [Percentage] of [Left] or [Right]
 ```
 Each of these assertion macros invoke an equivalent method in the `CppUnitTestFramework::Assert` namespace.  These methods can be overloaded in your own code if additional customization is required:
 ```cpp
 namespace CppUnitTestFramework::Assert {
     template <typename TLeft, typename TRight>
-    std::optional<AssertException> AreEqual(const TLeft& Left, const TRight& Right, const char* expression);
+    std::optional<AssertException> AreEqual(const TLeft& left, const TRight& right, const char* expression);
     template <typename T>
-    std::optional<AssertException> IsNull(const T& Value, const char* expression);
+    std::optional<AssertException> IsNull(const T& value, const char* expression);
+    template <typename T>
+    std::optional<AssertException> IsNotNull(const T& value, const char* expression);
     std::optional<AssertException> IsTrue(bool value, const char* expression);
     std::optional<AssertException> IsFalse(bool value, const char* expression);
     template <typename TException, typename Callback>
     std::optional<AssertException> Throws(const Callback& callback);
+    template <typename Callback>
+    std::optional<AssertException> NoThrow(const Callback& callback);
+    std::optional<AssertException> Close(float left, float right, float percentage);
+    std::optional<AssertException> Close(double left, double right, double percentage);
 }
 ```
 If an assertion fails then a failure message is generated.  In the case of `REQUIRE_EQUAL` the `Left` and `Right` values are converted to a `std::string` to be included in the message.  This conversion is done through an overload of the `CppUnitTestFramework::Ext::ToString()` method.  Standard coversions are provided for `nullptr`, pointers, enums and any type that can be converted to a `std::string` by construction or `std::to_string()`.
