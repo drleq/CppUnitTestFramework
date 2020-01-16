@@ -105,6 +105,7 @@ namespace CppUnitTestFramework {
         virtual void EnterTest(const std::string_view& name) = 0;
         virtual void ExitTest(bool failed) = 0;
 
+        virtual void SkipSection(const std::string_view& name) = 0;
         virtual void PushSection(const std::string_view& name) = 0;
         virtual void PopSection() = 0;
 
@@ -172,6 +173,13 @@ namespace CppUnitTestFramework {
             }
         }
 
+        void SkipSection(const std::string_view& name) override {
+            Indent() << "[Skipped] " << name.data() << std::endl;
+
+            if (m_run_options->Verbose) {
+                FlushLog();
+            }
+        }
         void PushSection(const std::string_view& name) override {
             Indent() << name.data() << std::endl;
             m_indent_level++;
@@ -532,9 +540,26 @@ namespace CppUnitTestFramework {
         //----------------------------------------------------------------------------------------------------
 
         inline std::optional<AssertException> Close(float left, float right, float percentage_tolerance) {
-            float diff = right - left;
-            float percentage_left = std::abs(diff / left);
-            float percentage_right = std::abs(diff / right);
+            // Code based on BOOST_CHECK_CLOSE
+            auto safe_div = [](float a, float b) -> float {
+                // Avoid overflow.
+                if ((b < 1.0f) && (a > b*std::numeric_limits<float>::max())) {
+                    return std::numeric_limits<float>::max();
+                }
+
+                // Avoid underflow.
+                if ((std::abs(a) <= std::numeric_limits<float>::min()) ||
+                    ((b > 1.0f) && (a < b*std::numeric_limits<float>::min()))
+                ) {
+                    return 0.0f;
+                }
+
+                return a / b;
+            };
+
+            float diff = std::abs(left - right);
+            float percentage_left = safe_div(diff, std::abs(left));
+            float percentage_right = safe_div(diff, std::abs(right));
 
             if (percentage_left <= percentage_tolerance && percentage_right <= percentage_tolerance) {
                 return std::nullopt;
@@ -549,9 +574,26 @@ namespace CppUnitTestFramework {
         //----------------------------------------------------------------------------------------------------
 
         inline std::optional<AssertException> Close(double left, double right, double percentage_tolerance) {
-            double diff = right - left;
-            double percentage_left = std::abs(diff / left);
-            double percentage_right = std::abs(diff / right);
+            // Code based on BOOST_CHECK_CLOSE
+            auto safe_div = [](double a, double b) -> double {
+                // Avoid overflow.
+                if ((b < 1.0) && (a > b*std::numeric_limits<double>::max())) {
+                    return std::numeric_limits<float>::max();
+                }
+
+                // Avoid underflow.
+                if ((std::abs(a) <= std::numeric_limits<double>::min()) ||
+                    ((b > 1.0) && (a < b*std::numeric_limits<double>::min()))
+                ) {
+                    return 0.0;
+                }
+
+                return a / b;
+            };
+
+            double diff = std::abs(left - right);
+            double percentage_left = safe_div(diff, std::abs(left));
+            double percentage_right = safe_div(diff, std::abs(right));
 
             if (percentage_left <= percentage_tolerance && percentage_right <= percentage_tolerance) {
                 return std::nullopt;
@@ -560,6 +602,34 @@ namespace CppUnitTestFramework {
             std::ostringstream ss;
             ss << "[" + Ext::ToString(left) + "] == [" + Ext::ToString(right) + "]: ";
             ss << "[" << diff << "] exceeds " << percentage_tolerance << "%";
+            return AssertException(ss.str());
+        }
+
+        //----------------------------------------------------------------------------------------------------
+
+        inline std::optional<AssertException> CloseFraction(float left, float right, float fraction) {
+            float diff = std::abs(left - right);
+            if (diff <= fraction) {
+                return std::nullopt;
+            }
+
+            std::ostringstream ss;
+            ss << "[" + Ext::ToString(left) + "] == [" + Ext::ToString(right) + "]: ";
+            ss << "[" << diff << "] exceeds " << fraction;
+            return AssertException(ss.str());
+        }
+
+        //----------------------------------------------------------------------------------------------------
+
+        inline std::optional<AssertException> CloseFraction(double left, double right, double fraction) {
+            double diff = std::abs(left - right);
+            if (diff <= fraction) {
+                return std::nullopt;
+            }
+
+            std::ostringstream ss;
+            ss << "[" + Ext::ToString(left) + "] == [" + Ext::ToString(right) + "]: ";
+            ss << "[" << diff << "] exceeds " << fraction;
             return AssertException(ss.str());
         }
 
@@ -650,6 +720,21 @@ namespace CppUnitTestFramework {
         bool m_check_has_failed = false;
         ILoggerPtr m_logger;
     };
+
+    //--------------------------------------------------------------------------------------------------------
+
+    template <typename T>
+    struct TestFixtureBaseImpl : CommonFixture, T {
+        using CommonFixture::CommonFixture;
+    };
+
+    template <typename T>
+    using TestFixtureBase = std::conditional_t<
+        std::is_base_of_v<CommonFixture, T>,
+        T,
+        TestFixtureBaseImpl<T>
+    >;
+
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -664,8 +749,8 @@ namespace CppUnitTestFramework {
 //------------------------------------------------------------------------------------------------------------
 
 #define TEST_CASE_WITH_TAGS(TestFixture, TestName, ...) namespace {                                 \
-    struct TestCase_##TestName : TestFixture, CppUnitTestFramework::CommonFixture {                 \
-        using CppUnitTestFramework::CommonFixture::CommonFixture;                                   \
+    struct TestCase_##TestName : CppUnitTestFramework::TestFixtureBase<TestFixture> {               \
+        using CppUnitTestFramework::TestFixtureBase<TestFixture>::TestFixtureBase;                  \
         static constexpr std::string_view SourceFile = __FILE__;                                    \
         static constexpr size_t SourceLine = __LINE__;                                              \
         static constexpr std::string_view Name = #TestFixture "::" #TestName;                       \
@@ -703,6 +788,8 @@ void TestCase_##TestName::Run()
     CppUnitTestFramework::CommonFixture::HandleAssert(CppUnitTestFramework::AssertType::Throw, _CPPUTF_ASSERT_LOCATION, CppUnitTestFramework::Assert::NoThrow([&] { Expression; }))
 #define REQUIRE_CLOSE(Left, Right, Percentage) \
     CppUnitTestFramework::CommonFixture::HandleAssert(CppUnitTestFramework::AssertType::Throw, _CPPUTF_ASSERT_LOCATION, CppUnitTestFramework::Assert::Close((Left), (Right), (Percentage)))
+#define REQUIRE_CLOSE_FRACTION(Left, Right, Fraction) \
+    CppUnitTestFramework::CommonFixture::HandleAssert(CppUnitTestFramework::AssertType::Throw, _CPPUTF_ASSERT_LOCATION, CppUnitTestFramework::Assert::CloseFraction((Left), (Right), (Fraction)))
 
 #define CHECK(Expression)          CppUnitTestFramework::CommonFixture::HandleAssert(CppUnitTestFramework::AssertType::Continue, _CPPUTF_ASSERT_LOCATION, CppUnitTestFramework::Assert::IsTrue(static_cast<bool>(Expression), #Expression))
 #define CHECK_TRUE(Expression)     CppUnitTestFramework::CommonFixture::HandleAssert(CppUnitTestFramework::AssertType::Continue, _CPPUTF_ASSERT_LOCATION, CppUnitTestFramework::Assert::IsTrue(static_cast<bool>(Expression), #Expression))
@@ -716,6 +803,8 @@ void TestCase_##TestName::Run()
     CppUnitTestFramework::CommonFixture::HandleAssert(CppUnitTestFramework::AssertType::Continue, _CPPUTF_ASSERT_LOCATION, CppUnitTestFramework::Assert::NoThrow([&] { Expression; }))
 #define CHECK_CLOSE(Left, Right, Percentage) \
     CppUnitTestFramework::CommonFixture::HandleAssert(CppUnitTestFramework::AssertType::Continue, _CPPUTF_ASSERT_LOCATION, CppUnitTestFramework::Assert::Close((Left), (Right), (Percentage)))
+#define CHECK_CLOSE_FRACTION(Left, Right, Fraction) \
+    CppUnitTestFramework::CommonFixture::HandleAssert(CppUnitTestFramework::AssertType::Continue, _CPPUTF_ASSERT_LOCATION, CppUnitTestFramework::Assert::CloseFraction((Left), (Right), (Fraction)))
 
 //------------------------------------------------------------------------------------------------------------
 

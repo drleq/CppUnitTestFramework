@@ -261,4 +261,68 @@ namespace CppUnitTestFrameworkTest {
         }
     }
 
+    //--------------------------------------------------------------------------------------------------------
+
+    TEST_CASE(AssertTest, CloseFraction_Float) {
+        SECTION("Check passes") {
+            CHECK_NO_THROW(REQUIRE_CLOSE_FRACTION(1.0f, 1.0f, 0.0f));
+
+            CHECK_NO_THROW(REQUIRE_CLOSE_FRACTION(1.0f, 2.0f, 1.0f));
+            CHECK_NO_THROW(REQUIRE_CLOSE_FRACTION(2.0f, 1.0f, 1.0f));
+            CHECK_NO_THROW(REQUIRE_CLOSE_FRACTION(1.0f, 1.5f, 0.5f));
+            CHECK_NO_THROW(REQUIRE_CLOSE_FRACTION(1.5f, 1.0f, 0.5f));
+
+            CHECK_NO_THROW(REQUIRE_CLOSE_FRACTION(-1.0f, -2.0f, 1.0f));
+            CHECK_NO_THROW(REQUIRE_CLOSE_FRACTION(-2.0f, -1.0f, 1.0f));
+            CHECK_NO_THROW(REQUIRE_CLOSE_FRACTION(-1.0f, -1.5f, 0.5f));
+            CHECK_NO_THROW(REQUIRE_CLOSE_FRACTION(-1.5f, -1.0f, 0.5f));
+        }
+
+        SECTION("Check fails") {
+            CHECK_THROW(AssertException, REQUIRE_CLOSE_FRACTION(1.0f, 2.0f, 0.0f));
+
+            CHECK_THROW(AssertException, REQUIRE_CLOSE_FRACTION(1.0f, 2.0f, 0.9f));
+            CHECK_THROW(AssertException, REQUIRE_CLOSE_FRACTION(2.0f, 1.0f, 0.9f));
+            CHECK_THROW(AssertException, REQUIRE_CLOSE_FRACTION(1.0f, 1.5f, 0.49f));
+            CHECK_THROW(AssertException, REQUIRE_CLOSE_FRACTION(1.5f, 1.0f, 0.49f));
+
+            CHECK_THROW(AssertException, REQUIRE_CLOSE_FRACTION(-1.0f, -2.0f, 0.9f));
+            CHECK_THROW(AssertException, REQUIRE_CLOSE_FRACTION(-2.0f, -1.0f, 0.9f));
+            CHECK_THROW(AssertException, REQUIRE_CLOSE_FRACTION(-1.0f, -1.5f, 0.49f));
+            CHECK_THROW(AssertException, REQUIRE_CLOSE_FRACTION(-1.5f, -1.0f, 0.49f));
+        }
+    }
+
+    //--------------------------------------------------------------------------------------------------------
+
+    TEST_CASE(AssertTest, CloseFraction_Double) {
+        SECTION("Check passes") {
+            CHECK_NO_THROW(REQUIRE_CLOSE_FRACTION(1.0, 1.0, 0.0));
+
+            CHECK_NO_THROW(REQUIRE_CLOSE_FRACTION(1.0, 2.0, 1.0));
+            CHECK_NO_THROW(REQUIRE_CLOSE_FRACTION(2.0, 1.0, 1.0));
+            CHECK_NO_THROW(REQUIRE_CLOSE_FRACTION(1.0, 1.5, 0.5));
+            CHECK_NO_THROW(REQUIRE_CLOSE_FRACTION(1.5, 1.0, 0.5));
+
+            CHECK_NO_THROW(REQUIRE_CLOSE_FRACTION(-1.0, -2.0, 1.0));
+            CHECK_NO_THROW(REQUIRE_CLOSE_FRACTION(-2.0, -1.0, 1.0));
+            CHECK_NO_THROW(REQUIRE_CLOSE_FRACTION(-1.0, -1.5, 0.5));
+            CHECK_NO_THROW(REQUIRE_CLOSE_FRACTION(-1.5, -1.0, 0.5));
+        }
+
+        SECTION("Check fails") {
+            CHECK_THROW(AssertException, REQUIRE_CLOSE_FRACTION(1.0, 2.0, 0.0));
+
+            CHECK_THROW(AssertException, REQUIRE_CLOSE_FRACTION(1.0, 2.0, 0.9));
+            CHECK_THROW(AssertException, REQUIRE_CLOSE_FRACTION(2.0, 1.0, 0.9));
+            CHECK_THROW(AssertException, REQUIRE_CLOSE_FRACTION(1.0, 1.5, 0.49));
+            CHECK_THROW(AssertException, REQUIRE_CLOSE_FRACTION(1.5, 1.0, 0.49));
+
+            CHECK_THROW(AssertException, REQUIRE_CLOSE_FRACTION(-1.0, -2.0, 0.9));
+            CHECK_THROW(AssertException, REQUIRE_CLOSE_FRACTION(-2.0, -1.0, 0.9));
+            CHECK_THROW(AssertException, REQUIRE_CLOSE_FRACTION(-1.0, -1.5, 0.49));
+            CHECK_THROW(AssertException, REQUIRE_CLOSE_FRACTION(-1.5, -1.0, 0.49));
+        }
+    }
+
 }
