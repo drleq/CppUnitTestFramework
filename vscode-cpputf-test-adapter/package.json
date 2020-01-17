@@ -40,17 +40,17 @@
         "hbenl.vscode-test-explorer"
     ],
     "dependencies": {
-        "entities": "^1.1.1",
-        "tslib": "^1.9.1",
-        "vscode-test-adapter-api": "^0.4.0",
-        "xml2js": "^0.4.19"
+        "entities": "^2.0.0",
+        "tslib": "^1.10.0",
+        "vscode-test-adapter-api": "^1.7.0",
+        "xml2js": "^0.4.23"
     },
     "devDependencies": {
-        "@types/xml2js": "^0.4.2",
+        "@types/xml2js": "^0.4.5",
         "@types/xml-parser": "^1.2.29",
-        "@types/entities": "^1.1.0",
-        "typescript": "^3.0.1",
-        "vscode": "^1.1.21"
+        "@types/entities": "^1.1.1",
+        "typescript": "^3.7.5",
+        "vscode": "1.1.36"
     },
     "engines": {
         "vscode": "^1.23.0"

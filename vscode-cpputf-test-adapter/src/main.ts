@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { TestExplorerExtension, testExplorerExtensionId } from 'vscode-test-adapter-api';
+import { TestHub, testExplorerExtensionId } from 'vscode-test-adapter-api';
 import { Adapter } from './CppUnitTestFramework/Adapter';
 
 //------------------------------------------------------------------------------------------------------------
@@ -8,8 +8,8 @@ const _registeredAdapters = new Map<vscode.WorkspaceFolder, Adapter>();
 
 //------------------------------------------------------------------------------------------------------------
 
-function _getTestExplorerUIExtension(): vscode.Extension<TestExplorerExtension> | undefined {
-    const testExplorerExtension = vscode.extensions.getExtension<TestExplorerExtension>(testExplorerExtensionId);
+function _getTestExplorerUIExtension(): vscode.Extension<TestHub> | undefined {
+    const testExplorerExtension = vscode.extensions.getExtension<TestHub>(testExplorerExtensionId);
 	if (!testExplorerExtension) {
         // The Test Explorer UI extension isn't available.  Nothing we can do.
         return undefined;
@@ -29,7 +29,7 @@ function _onWorkspaceFolderChanged(event: vscode.WorkspaceFoldersChangeEvent) {
     for (const workspaceFolder of event.removed) {
         const adapter = _registeredAdapters.get(workspaceFolder);
         if (adapter) {
-            testExplorerExtension.exports.unregisterAdapter(adapter);
+            testExplorerExtension.exports.unregisterTestAdapter(adapter);
             _registeredAdapters.delete(workspaceFolder);
         }
     }
@@ -37,7 +37,7 @@ function _onWorkspaceFolderChanged(event: vscode.WorkspaceFoldersChangeEvent) {
     for (const workspaceFolder of event.added) {
         const adapter = new Adapter(workspaceFolder);
         _registeredAdapters.set(workspaceFolder, adapter);
-        testExplorerExtension.exports.registerAdapter(adapter);
+        testExplorerExtension.exports.registerTestAdapter(adapter);
     }
 }
 
@@ -63,7 +63,7 @@ export async function activate(context: vscode.ExtensionContext) {
         for (const workspaceFolder of vscode.workspace.workspaceFolders) {
             const adapter = new Adapter(workspaceFolder);
             _registeredAdapters.set(workspaceFolder, adapter);
-            testExplorerExtension.exports.registerAdapter(adapter);
+            testExplorerExtension.exports.registerTestAdapter(adapter);
         }
     }
 }
