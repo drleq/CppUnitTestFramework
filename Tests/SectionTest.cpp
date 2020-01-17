@@ -37,6 +37,10 @@ namespace {
             throw std::runtime_error("Unexpected function called");
         }
 
+        void SkipSection(const std::string_view& name) override {
+            m_section_log << "Skip " << name << std::endl;
+            m_real_logger->SkipSection(name);
+        }
         void PushSection(const std::string_view& name) override {
             m_section_log << "Push " << name << std::endl;
             m_real_logger->PushSection(name);

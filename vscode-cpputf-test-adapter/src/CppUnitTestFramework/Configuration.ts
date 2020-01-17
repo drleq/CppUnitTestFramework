@@ -58,7 +58,7 @@ export class Configuration extends DisposableBase {
     //--------------------------------------------------------------------------------------------------------
 
     get environment() : NodeJS.ProcessEnv | undefined {
-        const environment = this._config.get(Configuration.EnvironmentField);
+        const environment = this._config.get<object>(Configuration.EnvironmentField);
         if (!environment) {
             return undefined;
         }

@@ -2,7 +2,7 @@ import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
 import * as vscode from 'vscode';
-import { TestAdapter, TestSuiteEvent, TestEvent, TestSuiteInfo, TestInfo } from "vscode-test-adapter-api";
+import { TestAdapter, TestSuiteEvent, TestEvent, TestSuiteInfo, TestLoadStartedEvent, TestLoadFinishedEvent } from "vscode-test-adapter-api";
 import { AsyncExec } from './AsyncExec';
 import { Configuration } from './Configuration';
 import { DisposableBase } from './DisposableBase';
@@ -20,6 +20,7 @@ interface TestConfiguration {
 //------------------------------------------------------------------------------------------------------------
 
 export class Adapter extends DisposableBase implements TestAdapter {
+    private readonly _testLoadEmitter = new vscode.EventEmitter<TestLoadStartedEvent | TestLoadFinishedEvent>();
     private readonly _testStatesEmitter = new vscode.EventEmitter<TestSuiteEvent | TestEvent>();
     private readonly _reloadEmitter = new vscode.EventEmitter<void>();
     private readonly _autorunEmitter = new vscode.EventEmitter<void>();
@@ -67,16 +68,20 @@ export class Adapter extends DisposableBase implements TestAdapter {
 
     //----------------------------------------------------------------------------------------------------
 
-    public async load() : Promise<TestSuiteInfo | undefined> {
+    public async load() : Promise<void> {
         return await this._discoverTests();
     }
 
-    public async run(testInfo: TestSuiteInfo | TestInfo) : Promise<void> {
-        return await this._runTests(testInfo);
+    public get tests() : vscode.Event<TestLoadStartedEvent | TestLoadFinishedEvent> {
+        return this._testLoadEmitter.event;
     }
 
-    public async debug(testInfo: TestSuiteInfo | TestInfo) : Promise<void> {
-        return await this._debugTests(testInfo);
+    public async run(testIds: string[]) : Promise<void> {
+        return await this._runTests(testIds);
+    }
+
+    public async debug(testIds: string[]) : Promise<void> {
+        return await this._debugTests(testIds);
     }
 
     public cancel() : void {
@@ -154,17 +159,20 @@ export class Adapter extends DisposableBase implements TestAdapter {
 
     //----------------------------------------------------------------------------------------------------
 
-    private async _discoverTests() : Promise<TestSuiteInfo | undefined> {
+    private async _discoverTests() : Promise<void> {
         if (this._testRun) {
             // Something is already running.
             this._logger.write('Cannot discover tests while a test run is active');
-            return undefined;
+            return;
         }
 
         const testConfig = this._getTestConfig();
         if (!testConfig) {
             this._logger.write('Failed to get the test configuration.');
-            return undefined;
+            this._testLoadEmitter.fire(<TestLoadFinishedEvent>{
+                errorMessage: 'Failed to get the test configuration.  Is settings.json configured?'
+            });
+            return;
         }
 
         const testSuite: TestSuiteInfo = {
@@ -215,15 +223,23 @@ export class Adapter extends DisposableBase implements TestAdapter {
             });
         };
 
-        return new Promise<TestSuiteInfo | undefined>((resolve, reject) => {
+        return new Promise<void>((resolve, reject) => {
             this.track(this._testRun = new AsyncExec(this._logger));
             
             this._testRun.onExit((code) => {
                 if (code == 0) {
                     this._logger.write('Discovered ' + testSuite.children.length + ' fixtures');
-                    resolve(testSuite);
+                    this._testLoadEmitter.fire(<TestLoadFinishedEvent>{
+                        type: 'finished',
+                        suite: testSuite
+                    });
+                    resolve();
                 } else {
                     this._logger.write('Failed with code ' + code);
+                    this._testLoadEmitter.fire(<TestLoadFinishedEvent>{
+                        type: 'finished',
+                        errorMessage: 'Test discovery failed.  Exited with code ' + code
+                    });
                     reject(code);
                 }
                 this.untrack(<AsyncExec>this._testRun);
@@ -231,6 +247,10 @@ export class Adapter extends DisposableBase implements TestAdapter {
             })
             this._testRun.onError((error) => {
                 this._logger.write('Failed with error ' + error.message);
+                this._testLoadEmitter.fire(<TestLoadFinishedEvent>{
+                    type: 'finished',
+                    errorMessage: 'Test discovery failed.  ' + error
+                });
                 reject(error);
                 this.untrack(<AsyncExec>this._testRun);
                 this._testRun = undefined;
@@ -244,12 +264,14 @@ export class Adapter extends DisposableBase implements TestAdapter {
                 testConfig.workingDirectory,
                 testConfig.environment
             );
+
+            this._testLoadEmitter.fire(<TestLoadStartedEvent>{ type: 'started' });
         });
     }
 
     //----------------------------------------------------------------------------------------------------
 
-    private async _runTests(testInfo: TestSuiteInfo | TestInfo) : Promise<void> {
+    private async _runTests(testIds: string[]) : Promise<void> {
         if (this._testRun) {
             // Something is already running.
             this._logger.write('Cannot run tests while a test run is active');
@@ -353,9 +375,7 @@ export class Adapter extends DisposableBase implements TestAdapter {
             this._testRun.onStdoutLine(handleLine);
 
             const execArgs: string[] = [ "--verbose", "--adapter_info" ];
-            if (testInfo.id != 'AllFixtures') {
-                execArgs.push(testInfo.id);
-            }
+            execArgs.concat(testIds);
 
             this._logger.write('Running tests...');
             this._testRun.start(
@@ -369,7 +389,7 @@ export class Adapter extends DisposableBase implements TestAdapter {
 
     //----------------------------------------------------------------------------------------------------
 
-    private async _debugTests(entry: TestSuiteInfo | TestInfo) : Promise<void> {
+    private async _debugTests(testIds: string[]) : Promise<void> {
         if (this._testRun) {
             // Something is already running.
             this._logger.write('Cannot debug tests while a test run is active');
@@ -383,13 +403,11 @@ export class Adapter extends DisposableBase implements TestAdapter {
         }
 
         const execArgs: string[] = [ "--verbose" ];
-        if (entry.id != 'AllFixtures') {
-            execArgs.push(entry.id);
-        }
+        execArgs.concat(testIds);
 
         // Build a DebugConfiguration that runs the requested tests through the C++ debugger.
         const debugLaunchConfig: vscode.DebugConfiguration = {
-            name: 'Debugging ' + entry.id,
+            name: 'Debugging C++',
             type: 'cppvsdbg',
             linux: {
                 type: 'cppdbg',

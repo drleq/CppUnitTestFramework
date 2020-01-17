@@ -17,7 +17,7 @@ Debugging is handled through the `ms-vscode.cpptools` extension.  The debugger l
 
 Platform | Requirements
 ---------|-------------
-Windows  | Visual Studio 2017
+Windows  | Visual Studio 2017/2019
 Linux    | `gdb`
 OSX      | `lldb`
 
