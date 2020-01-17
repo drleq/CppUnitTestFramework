@@ -39,7 +39,7 @@ If no `options` or `keywords` are provided then all test cases are run but only 
 
 
 # Fixtures and test cases
-A test fixture is a base class that is re-used for multiple test cases.  Each test case will have it's own copy of the base class so each test case will perform the same set-up and tear-down steps.  There is no support for re-using the same fixture instance across multiple test cases.
+A test fixture is a base class that is re-used for multiple test cases.  Each test case will have it's own copy of the base class so each test case will perform the same set-up and tear-down steps.
 ```cpp
 struct MyFixture {
     constexpr int CommonData = 10;
@@ -55,6 +55,19 @@ TEST_CASE(MyFixture, Test2) {
     CHECK_EQUAL(CommonData, 10);
     // MyFixture destructor called
 }
+```
+
+If you want to use assertions in the test fixture base class then it should inherit from `CppUnitTestFramework::CommonFixture`.
+```cpp
+struct MyFixture : CppUnitTestFramework::CommonFixture {
+    // Constructors should be forwarded to allow for initialization
+    using CppUnitTestFramework::CommonFixture::CommonFixture;
+
+    void CustomAssert(int a, int b) {
+        // This will only compile if CommonFixture is a base class
+        CHECK_EQUAL(a, b)
+    }
+};
 ```
 
 
@@ -90,6 +103,7 @@ REQUIRE_NOT_NULL(Expression)   // Asserts that [Expression] does not evaluate to
 REQUIRE_THROW(ExceptionType, Expession)  // Asserts that invoking [Expression] causes an exception of type [ExceptionType] to be thrown
 REQUIRE_NO_THROW(Expression)   // Asserts that invoking [Expression] does not cause any type of exception to be thrown
 REQUIRE_CLOSE(Left, Right, Percentage)   // Asserts that [abs(Right - Left)] is less than the absolute [Percentage] of [Left] or [Right]
+REQUIRE_CLOSE_FRACITON(Left, Right, Fraction)  // Asserts that [abs(Right - Left)] is less than [Fraction]
 ```
 Each of these assertion macros invoke an equivalent method in the `CppUnitTestFramework::Assert` namespace.  These methods can be overloaded in your own code if additional customization is required:
 ```cpp
@@ -108,6 +122,8 @@ namespace CppUnitTestFramework::Assert {
     std::optional<AssertException> NoThrow(const Callback& callback);
     std::optional<AssertException> Close(float left, float right, float percentage);
     std::optional<AssertException> Close(double left, double right, double percentage);
+    std::optional<AssertException> CloseFraction(float left, float right, float fraction);
+    std::optional<AssertException> CloseFraction(double left, double right, double fraction);
 }
 ```
 If an assertion fails then a failure message is generated.  In the case of `REQUIRE_EQUAL` the `Left` and `Right` values are converted to a `std::string` to be included in the message.  This conversion is done through an overload of the `CppUnitTestFramework::Ext::ToString()` method.  Standard coversions are provided for `nullptr`, pointers, enums and any type that can be converted to a `std::string` by construction or `std::to_string()`.
