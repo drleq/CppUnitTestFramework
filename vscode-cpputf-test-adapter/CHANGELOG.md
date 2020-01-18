@@ -1,3 +1,10 @@
+### Version 1.2.1
+* Fixed race condition in test discovery
+  * Some tests were being missed due to the discovery data being truncated
+
+### Version 1.2.0
+* Updated to new Test Explorer UI test discovery API
+
 ### Version 1.1.0
 * Improved cross-platform support
   * Allow the debugger to launch on Windows, Linux and OSX.
