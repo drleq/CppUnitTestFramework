@@ -55,7 +55,7 @@ export class AsyncExec extends DisposableBase {
         this._logger.write('    ' + workingDirectory);
 
         this._process = childProcess.spawn(executable, args, spawnConfig);
-        this._process.on('exit', (code, signal) => { this._onExit(code, signal); });
+        this._process.on('close', (code) => { this._onExit(code); });
         this._process.on('error', (error) => { this._onError(error) });
         this._process.stdout!.on('data', (chunk) => { this._onChunk(chunk); });
     }
@@ -75,7 +75,7 @@ export class AsyncExec extends DisposableBase {
 
     //--------------------------------------------------------------------------------------------------------
 
-    private _onExit(code: number | null, signal: string | null) {
+    private _onExit(code: number | null) {
         this._flushIncompleteLine();
 
         if (code === null) {
