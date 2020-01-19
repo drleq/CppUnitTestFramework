@@ -288,6 +288,10 @@ export class Adapter extends DisposableBase implements TestAdapter {
         let currentTestName: string = '';
         let currentMessageLines: string[] = [];
 
+        if (testIds.includes('AllFixtures')) {
+            testIds = [];
+        }
+
         const handleLine = (line: string) => {
             if (testsComplete) {
                 // We have stopped processing tests for some reason.
@@ -401,6 +405,9 @@ export class Adapter extends DisposableBase implements TestAdapter {
             return;
         }
 
+        if (testIds.includes('AllFixtures')) {
+            testIds = [];
+        }
         const execArgs: string[] = [ "--verbose", ...testIds ];
 
         // Build a DebugConfiguration that runs the requested tests through the C++ debugger.
