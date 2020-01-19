@@ -1,3 +1,6 @@
+### Version 1.2.5
+* Fixed running all tests
+
 ### Version 1.2.4
 * Fixed running individual tests from the Test Explorer UI
 
