@@ -374,8 +374,7 @@ export class Adapter extends DisposableBase implements TestAdapter {
             });
             this._testRun.onStdoutLine(handleLine);
 
-            const execArgs: string[] = [ "--verbose", "--adapter_info" ];
-            execArgs.concat(testIds);
+            const execArgs: string[] = [ "--verbose", "--adapter_info", ...testIds ];
 
             this._logger.write('Running tests...');
             this._testRun.start(
@@ -402,8 +401,7 @@ export class Adapter extends DisposableBase implements TestAdapter {
             return;
         }
 
-        const execArgs: string[] = [ "--verbose" ];
-        execArgs.concat(testIds);
+        const execArgs: string[] = [ "--verbose", ...testIds ];
 
         // Build a DebugConfiguration that runs the requested tests through the C++ debugger.
         const debugLaunchConfig: vscode.DebugConfiguration = {
@@ -431,6 +429,9 @@ export class Adapter extends DisposableBase implements TestAdapter {
 
         return new Promise<void>(async (resolve, reject) => {
             this._logger.write('Debugging tests...');
+            this._logger.write('    ' + debugLaunchConfig.program);
+            this._logger.write('    [' + debugLaunchConfig.args.join(', ') + ']');
+            this._logger.write('    ' + debugLaunchConfig.cwd);
 
             const success = await vscode.debug.startDebugging(this._workspaceFolder, debugLaunchConfig);
             const activeSession = vscode.debug.activeDebugSession;
