@@ -1,3 +1,6 @@
+### Version 1.2.4
+* Fixed running individual tests from the Test Explorer UI
+
 ### Version 1.2.1
 * Fixed race condition in test discovery
   * Some tests were being missed due to the discovery data being truncated
