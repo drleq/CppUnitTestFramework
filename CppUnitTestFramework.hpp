@@ -386,6 +386,10 @@ namespace CppUnitTestFramework {
                 // std::nullptr_t
                 return "nullptr";
 
+            } else if constexpr (std::is_same_v<std::nullopt_t, T>) {
+                // std::nullopt
+                return "?";
+
             } else if constexpr (std::is_constructible_v<std::string, const T&>) {
                 // std::string(const T&)
                 return std::string(value);
@@ -417,6 +421,17 @@ namespace CppUnitTestFramework {
                 // std::to_string(const T&)
                 return std::to_string(value);
             }
+        }
+
+        //----------------------------------------------------------------------------------------------------
+
+        template <typename T>
+        std::string ToString(const std::optional<T>& value) {
+            if (!value.has_value()) {
+                return ToString(std::nullopt);
+            }
+
+            return ToString(value.value());
         }
     }
 
