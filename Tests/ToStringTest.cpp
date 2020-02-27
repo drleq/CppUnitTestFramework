@@ -92,6 +92,15 @@ namespace CppUnitTestFrameworkTest {
 
     //--------------------------------------------------------------------------------------------------------
 
+    TEST_CASE(ToStringTest, Nullopt) {
+        CHECK_EQUAL(Ext::ToString(std::nullopt), "?");
+        CHECK_EQUAL(Ext::ToString(std::optional<int>()), "?");
+        CHECK_EQUAL(Ext::ToString(std::make_optional(10)), "10");
+        CHECK_EQUAL(Ext::ToString(std::make_optional("Hello world")), "Hello world");
+    }
+
+    //--------------------------------------------------------------------------------------------------------
+
     TEST_CASE(ToStringTest, CustomType) {
         CustomType value { 1234 };
         CHECK_EQUAL(Ext::ToString(value), "[CustomType] 1234");
