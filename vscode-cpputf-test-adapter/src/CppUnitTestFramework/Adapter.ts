@@ -393,6 +393,12 @@ export class Adapter extends DisposableBase implements TestAdapter {
     //----------------------------------------------------------------------------------------------------
 
     private async _debugTests(testIds: string[]) : Promise<void> {
+        if (testIds.length === 1 && testIds[0] === '') {
+            // A single test of the empty string equates to running the test suite.  For that we simply
+            // don't specify a test id.
+            testIds = [];
+        }
+        
         if (this._testRun) {
             // Something is already running.
             this._logger.write('Cannot debug tests while a test run is active');
