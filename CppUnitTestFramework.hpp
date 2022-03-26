@@ -442,7 +442,7 @@ namespace CppUnitTestFramework {
     namespace Assert {
         template <typename TLeft, typename TRight>
         std::optional<AssertException> AreEqual(TLeft&& left, TRight&& right) {
-            bool equal = (left == right);
+            bool equal = static_cast<bool>(left == right);
             if (equal) {
                 return std::nullopt;
             }
@@ -670,11 +670,11 @@ namespace CppUnitTestFramework {
             m_logger00->PushSection(text);
         }
 
-        SectionLock(SectionLock&& other)
+        SectionLock(SectionLock&& other) noexcept
           : m_logger00(std::move(other.m_logger00))
         {}
 
-        SectionLock& operator = (SectionLock&& other) {
+        SectionLock& operator = (SectionLock&& other) noexcept {
             if (m_logger00) {
                 m_logger00->PopSection();
             }
@@ -725,8 +725,8 @@ namespace CppUnitTestFramework {
 
         // In leiu of std::make_array()
         template <typename... TArgs>
-        static constexpr auto make_tags_array(TArgs&&... tags) {
-            return std::array<std::string_view, sizeof...(TArgs)> {
+        static auto make_tags_array(TArgs&&... tags) {
+            return std::vector<std::string_view> {
                 std::forward<TArgs>(tags)...
             };
         }
@@ -769,9 +769,10 @@ namespace CppUnitTestFramework {
         static constexpr std::string_view SourceFile = __FILE__;                                    \
         static constexpr size_t SourceLine = __LINE__;                                              \
         static constexpr std::string_view Name = #TestFixture "::" #TestName;                       \
-        static constexpr auto Tags = make_tags_array(__VA_ARGS__);                                  \
+        static std::vector<std::string_view> Tags;                                                  \
         void Run();                                                                                 \
     };                                                                                              \
+    std::vector<std::string_view> TestCase_##TestName::Tags = make_tags_array(__VA_ARGS__);         \
     CppUnitTestFramework::TestRegistry::AutoReg<TestCase_##TestName> _CPPUTF_NEXT_REGISTRAR_NAME;   \
 }                                                                                                   \
 void TestCase_##TestName::Run()
