@@ -177,8 +177,8 @@ export class Adapter extends DisposableBase implements TestAdapter {
 
         const testSuite: TestSuiteInfo = {
             type: 'suite',
-            id: 'AllFixtures',
-            label: 'AllFixtures',
+            id: '',
+            label: '',
             children: []
         };
 
@@ -272,6 +272,12 @@ export class Adapter extends DisposableBase implements TestAdapter {
     //----------------------------------------------------------------------------------------------------
 
     private async _runTests(testIds: string[]) : Promise<void> {
+        if (testIds.length === 1 && testIds[0] === '') {
+            // A single test of the empty string equates to running the test suite.  For that we simply
+            // don't specify a test id.
+            testIds = [];
+        }
+
         if (this._testRun) {
             // Something is already running.
             this._logger.write('Cannot run tests while a test run is active');
@@ -294,12 +300,6 @@ export class Adapter extends DisposableBase implements TestAdapter {
                 return;
             }
 
-            if (line.startsWith('    ')) {
-                // A message line for the current test.
-                currentMessageLines.push(line.trimLeft());
-                return;
-            }
-
             if (line.startsWith('Test Complete:')) {
                 if (currentTestName.length == 0) {
                     // Unexpected test completion
@@ -308,7 +308,7 @@ export class Adapter extends DisposableBase implements TestAdapter {
                 }
 
                 // The current test has finished.  Update the status.
-                const passed = line.substr(15) == "passed";
+                const passed = line.substring(15) == "passed";
                 const status = passed ? "passed" : "failed";
                 const message = currentMessageLines.join(os.EOL);
                 this._updateTestStatus(currentTestName, status, message);
@@ -318,20 +318,14 @@ export class Adapter extends DisposableBase implements TestAdapter {
                 return;
             }
 
-            if (currentTestName.length != 0) {
-                // The current test has finished unexpectedly.
-                testsComplete = true;
-                return;
-            }
-
             if (line.startsWith('Skip:')) {
-                const testName = line.substr(6);
+                const testName = line.substring(6);
                 this._updateTestStatus(testName, "skipped", "");
                 return;
             }
 
             if (line.startsWith('Test:')) {
-                currentTestName = line.substr(6);
+                currentTestName = line.substring(6);
                 this._updateTestStatus(currentTestName, "running", '');
                 return;
             }
@@ -344,6 +338,16 @@ export class Adapter extends DisposableBase implements TestAdapter {
             if (line.startsWith('Complete.')) {
                 // All done.
                 testsComplete = true;
+                return;
+            }
+
+            if (currentTestName.length != 0) {
+                if (line.startsWith('    ')) {
+                    line = line.substring(4);
+                }
+
+                // Assume output from the test
+                currentMessageLines.push(line);
                 return;
             }
 

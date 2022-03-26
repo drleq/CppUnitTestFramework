@@ -100,6 +100,24 @@ namespace CppUnitTestFrameworkTestAdapter.CppUnitTestFramework
 
         //----------------------------------------------------------------------------------------------------
 
+        protected Process StartDebugTestRun(
+            IFrameworkHandle frameworkHandle,
+            string executable,
+            params string[] args
+        ) {
+            LogDebug($"Debugging {executable} {string.Join(" ", args)}");
+
+            int process_id = frameworkHandle.LaunchProcessWithDebuggerAttached(
+                executable,
+                GetWorkingDirectory(executable),
+                string.Join(" ", args),
+                Config.Environment
+            );
+            return Process.GetProcessById(process_id);
+        }
+
+        //----------------------------------------------------------------------------------------------------
+
         private string GetWorkingDirectory(string executable) {
             if (Config.WorkingDirectory00 == null) {
                 // No working directory in the config.  Return either the test run directory or the
@@ -170,8 +188,7 @@ namespace CppUnitTestFrameworkTestAdapter.CppUnitTestFramework
                 var test_name = name_parts[1];
 
                 var source_file = parts[1];
-                int source_line;
-                if (!int.TryParse(parts[2], out source_line)) {
+                if (!int.TryParse(parts[2], out int source_line)) {
                     LogWarn("Failed to parse line number: " + parts[2]);
                     continue;
                 }

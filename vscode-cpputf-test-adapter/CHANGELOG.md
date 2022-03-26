@@ -1,3 +1,7 @@
+### Version 1.3.0
+* Updated to VSCode engine version 1.65.0
+* Updated dependencies
+
 ### Version 1.2.4
 * Fixed running individual tests from the Test Explorer UI
 

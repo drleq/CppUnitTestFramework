@@ -3,10 +3,7 @@ using Microsoft.VisualStudio.TestPlatform.ObjectModel.Adapter;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.IO;
 using System.Linq;
-using System.Text;
-using System.Threading;
 using System.Threading.Tasks;
 
 namespace CppUnitTestFrameworkTestAdapter.CppUnitTestFramework
@@ -47,7 +44,7 @@ namespace CppUnitTestFrameworkTestAdapter.CppUnitTestFramework
             // Run specific test cases
             foreach (var executable_group in per_executable) {
                 var executable = executable_group.Key;
-                RunAndParseTests(frameworkHandle, executable, executable_group);
+                RunAndParseTests(runContext, frameworkHandle, executable, executable_group);
             }
         }
 
@@ -73,14 +70,15 @@ namespace CppUnitTestFrameworkTestAdapter.CppUnitTestFramework
                 }
 
                 // Run all test cases
-                RunAndParseTests(frameworkHandle, executable, task.Result);
+                RunAndParseTests(runContext, frameworkHandle, executable, task.Result);
             }
         }
 
         //----------------------------------------------------------------------------------------------------
 
         private void RunAndParseTests(
-            ITestExecutionRecorder recorder,
+            IRunContext run_context,
+            IFrameworkHandle frameworkHandle,
             string executable,
             IEnumerable<TestCase> tests
         ) {
@@ -94,12 +92,16 @@ namespace CppUnitTestFrameworkTestAdapter.CppUnitTestFramework
                     return;
                 }
 
-                m_test_run_process = StartTestRun(executable, args.ToArray());
+                if (run_context.IsBeingDebugged) {
+                    m_test_run_process = StartDebugTestRun(frameworkHandle, executable, args.ToArray());
+                } else { 
+                    m_test_run_process = StartTestRun(executable, args.ToArray());
+                }
                 if (m_test_run_process == null) {
                     LogError("Failed to launch " + executable);
                 }
 
-                parse_output_task = ParseTestRunOutput(recorder, m_test_run_process.StandardOutput, tests);
+                parse_output_task = ParseTestRunOutput(frameworkHandle, m_test_run_process, tests);
             }
 
             parse_output_task.Wait();
@@ -116,9 +118,17 @@ namespace CppUnitTestFrameworkTestAdapter.CppUnitTestFramework
 
         private async Task ParseTestRunOutput(
             ITestExecutionRecorder recorder,
-            StreamReader stream,
+            Process process,
             IEnumerable<TestCase> tests
         ) {
+            if (!process.StartInfo.RedirectStandardOutput) {
+                // A debugged process won't re-direct stdout for us while it's running.  We can't know what
+                // the results are (and they may not even be accurate if the tests exited early).
+                process.WaitForExit();
+                return;
+            }
+            var stream = process.StandardOutput;
+
             var tests_complete = false;
             TestCase current_test = null;
             var current_message_lines = new List<string>();
@@ -132,12 +142,6 @@ namespace CppUnitTestFrameworkTestAdapter.CppUnitTestFramework
                 if (tests_complete) {
                     // We have stopped processing tests for some reason.
                     break;
-                }
-
-                if (line.StartsWith("    ")) {
-                    // A message line for the current test.
-                    current_message_lines.Add(line.TrimStart());
-                    continue;
                 }
 
                 if (line.StartsWith("Test Complete:")) {
@@ -163,19 +167,15 @@ namespace CppUnitTestFrameworkTestAdapter.CppUnitTestFramework
                     continue;
                 }
 
-                if (current_test != null) {
-                    // The current test has finished unexpectedly.
-                    LogError($"Unexpected end of test: {current_test.FullyQualifiedName}");
-                    break;
-                }
-
                 if (line.StartsWith("Skip:")) {
                     var test_name = line.Substring(6);
-                    recorder.RecordResult(
-                        new TestResult(tests.First(t => t.FullyQualifiedName == test_name)) {
-                            Outcome = TestOutcome.Skipped
-                        }
-                    );
+
+                    var test_case = tests.FirstOrDefault(t => t.FullyQualifiedName == test_name);
+                    if (test_case != null) {
+                        recorder.RecordResult(
+                            new TestResult(test_case) { Outcome = TestOutcome.Skipped }
+                        );
+                    }
                     LogDebug($"Test Skipped: {test_name}");
                     continue;
                 }
@@ -195,6 +195,16 @@ namespace CppUnitTestFrameworkTestAdapter.CppUnitTestFramework
                 if (line.StartsWith("Complete.")) {
                     // All done.
                     tests_complete = true;
+                    continue;
+                }
+
+                if (line.Length != 0) {
+                    if (line.StartsWith("    ")) {
+                        line = line.Substring(4);
+                    }
+
+                    // Assume output from the test
+                    current_message_lines.Add(line);
                     continue;
                 }
 

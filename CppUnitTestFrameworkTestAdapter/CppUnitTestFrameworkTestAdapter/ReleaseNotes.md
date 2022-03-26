@@ -11,6 +11,10 @@ Property           | Description
 `Environment`      | _Optional_: A map of additional environment variables to apply when running the unit test executable.
 `DebugLogging`     | _Optional_: Enabled debug logging for the extension.  Defaults to `false`.
 
+### v1.3.0
+  - Bring version in line with VSCode extension, and port fixes
+  - Update metadata for VS2022 compatability
+  - Enable debugging from the Test Explorer sidebar
 
 ### v0.3.0
   - Initial implementation.  Starting at v0.3.0 to match VSCode test adapter.

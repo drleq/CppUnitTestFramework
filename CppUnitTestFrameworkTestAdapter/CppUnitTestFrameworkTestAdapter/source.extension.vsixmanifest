@@ -1,16 +1,20 @@
 <?xml version="1.0" encoding="utf-8"?>
 <PackageManifest Version="2.0.0" xmlns="http://schemas.microsoft.com/developer/vsx-schema/2011" xmlns:d="http://schemas.microsoft.com/developer/vsx-schema-design/2011">
     <Metadata>
-        <Identity Id="CppUnitTestFrameworkTestAdapter.3d93a426-c7bd-4f14-94c6-2c31cab6ac53" Version="1.0" Language="en-US" Publisher="drleq" />
+        <Identity Id="CppUnitTestFrameworkTestAdapter.e1090498-279c-46c1-af21-747b7c1d88a3" Version="1.3.0" Language="en-US" Publisher="drleq" />
         <DisplayName>Test Adapter for CppUnitTestFramework</DisplayName>
         <Description>Test Adapter for use with CppUnitTestFramework.</Description>
         <MoreInfo>https://github.com/drleq/CppUnitTestFramework</MoreInfo>
         <License>LICENSE.txt</License>
         <ReleaseNotes>ReleaseNotes.md</ReleaseNotes>
+        <Icon>icon.png</Icon>
         <Tags>C++, Unit Test, CppUnitTestFramework, CppUTF, Test Adapter</Tags>
     </Metadata>
     <Installation>
-        <InstallationTarget Id="Microsoft.VisualStudio.Community" Version="[15.0, 16.0)" />
+        <InstallationTarget Version="[17.0,18.0)" Id="Microsoft.VisualStudio.Community">
+            <ProductArchitecture>amd64</ProductArchitecture>
+        </InstallationTarget>
+        <InstallationTarget Version="[15.0,17.0)" Id="Microsoft.VisualStudio.Community" />
     </Installation>
     <Dependencies>
         <Dependency Id="Microsoft.Framework.NDP" DisplayName="Microsoft .NET Framework" d:Source="Manual" Version="[4.5,)" />
@@ -20,6 +24,6 @@
         <Asset Type="UnitTestExtension" d:Source="Project" d:ProjectName="%CurrentProject%" Path="|%CurrentProject%|" AssemblyName="|%CurrentProject%;AssemblyName|"  />
     </Assets>
     <Prerequisites>
-        <Prerequisite Id="Microsoft.VisualStudio.Component.CoreEditor" Version="[15.0,16.0)" DisplayName="Visual Studio core editor" />
+        <Prerequisite Id="Microsoft.VisualStudio.Component.CoreEditor" Version="[16.0, 18.0)" DisplayName="Visual Studio core editor" />
     </Prerequisites>
 </PackageManifest>
