@@ -100,7 +100,7 @@ namespace CppUnitTestFrameworkTest {
             static constexpr std::string_view SourceFile = __FILE__;
             static constexpr size_t SourceLine = __LINE__;
             static constexpr std::string_view Name = "SectionTest::Nesting";
-            static constexpr auto Tags = make_tags_array();
+            static std::vector<std::string_view> Tags;
 
             void Run() override {
                 CHECK_EQUAL(GetTestLog(), "");
@@ -116,6 +116,7 @@ namespace CppUnitTestFrameworkTest {
                 CHECK_EQUAL(GetTestLog(), "Push Section: Outer\nPush Section: Inner\nPop\nPop\n");
             }
         };
+        std::vector<std::string_view> TestCase_Nesting::Tags = make_tags_array();
         TestRegistry::AutoReg<TestCase_Nesting> s_test_registrar_Nesting;
     }
 
@@ -128,7 +129,7 @@ namespace CppUnitTestFrameworkTest {
             static constexpr std::string_view SourceFile = __FILE__;
             static constexpr size_t SourceLine = __LINE__;
             static constexpr std::string_view Name = "SectionTest::BDD";
-            static constexpr auto Tags = make_tags_array();
+            static std::vector<std::string_view> Tags;
 
             void Run() override {
                 CHECK_EQUAL(GetTestLog(), "");
@@ -156,6 +157,7 @@ Pop
                 );
             }
         };
+        std::vector<std::string_view> TestCase_BDD::Tags = make_tags_array();
         TestRegistry::AutoReg<TestCase_BDD> s_test_registrar_BDD;
     }
 

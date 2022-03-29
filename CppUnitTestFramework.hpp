@@ -724,12 +724,11 @@ namespace CppUnitTestFramework {
         }
 
         // In leiu of std::make_array()
-        template <int Size>
-        using tags_array_t = std::array<std::string_view, Size>;
-
         template <typename... TArgs>
-        static constexpr tags_array_t<sizeof...(TArgs)> make_tags_array(TArgs&&... tags) {
-            return tags_array_t<sizeof...(TArgs)> { std::forward<TArgs>(tags)... };
+        static auto make_tags_array(TArgs&&... tags) {
+            return std::vector<std::string_view> {
+                std::forward<TArgs>(tags)...
+            };
         }
 
     private:
@@ -770,9 +769,10 @@ namespace CppUnitTestFramework {
         static constexpr std::string_view SourceFile = __FILE__;                                    \
         static constexpr size_t SourceLine = __LINE__;                                              \
         static constexpr std::string_view Name = #TestFixture "::" #TestName;                       \
-        static constexpr auto Tags = make_tags_array(__VA_ARGS__);                                  \
+        static std::vector<std::string_view> Tags;                                                  \
         void Run();                                                                                 \
     };                                                                                              \
+    std::vector<std::string_view> TestCase_##TestName::Tags = make_tags_array(__VA_ARGS__);         \
     CppUnitTestFramework::TestRegistry::AutoReg<TestCase_##TestName> _CPPUTF_NEXT_REGISTRAR_NAME;   \
 }                                                                                                   \
 void TestCase_##TestName::Run()
